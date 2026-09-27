@@ -1,0 +1,1517 @@
+association,region,region_name
+3B8,MU,Mauritius
+3DA,HH,Hhohho
+3DA,MA,Manzini
+3DA,SH,Shiselweni
+3Y,BV,Bouvetøya (Bouvet Island)
+4O,IC,Istok Crne Gore
+4O,JC,Jug Crne Gore
+4O,ZC,Zapad Crne Gore
+4X,NI,North Israel
+4X,SI,South Israel
+5B,CY,Cyprus
+7P,BB,Bophirima-le-Borwa Highlands
+7P,BD,Borwa ba Drakensberg
+7P,BL,Bophirimela Lowlands
+7P,PP,Pakeng Plateau
+7P,SB,Sehloho sa Bohareng
+8P,BB,Barbados
+9A,DH,DalmatinskaHrvatska (Dalmatian Croatia)
+9A,GH,GorskaHrvatska (Mountainous Croatia)
+9A,IH,IstocnaHrvatska (East Croatia)
+9A,PH,PrimorskaHrvatska (Coastal Croatia)
+9A,ZH,ZapadnaHrvatska (West Croatia)
+9H,GO,Gozo
+9H,MA,Malta
+9M2,JO,Johor
+9M2,KD,Kedah
+9M2,KL,Kuala Lumpur
+9M2,KT,Kelantan
+9M2,ME,Melaka
+9M2,NS,Negeri Sembilan
+9M2,PH,Pahang
+9M2,PK,Perak
+9M2,PP,Pulau Pinang
+9M2,PS,Perlis
+9M2,SE,Selangor
+9M2,TR,Terengganu
+9M6,KB,Kota Belud
+9V,SG,Singapore
+A6,AJ,Ajman - عجمان
+A6,DU,Dubai - دبي
+A6,FU,Fujairah - الفجيرة
+A6,RK,Ras Al Khaimah - رأس الخيمة
+A6,SH,Sharjah - الشارقة
+BV,CA,Changhua
+BV,CH,Chiayi
+BV,HL,Hualien
+BV,HS,Hsinchu
+BV,KA,Kaohsiung
+BV,KI,Kinmen
+BV,LI,Lienkiang
+BV,MI,Miaoli
+BV,NA,Nantou
+BV,NT,New Taipei
+BV,PI,Pingtung
+BV,TA,Taoyuan
+BV,TC,Taichung
+BV,TN,Tainan
+BV,TP,Taipei
+BV,TT,Taitung
+BV,YI,Yilan
+BV,YU,Yulin
+C3,AD,Andorra
+CE3,CH,Chacabuco
+CE3,CO,Cordillera
+CE3,SA,Santiago
+CT,AA,Alto Alentejo
+CT,AL,Algarve
+CT,BA,Beira Alta
+CT,BB,Beira Baixa
+CT,BL,Beira Litoral
+CT,BT,Baixo Alentejo
+CT,DL,Douro Litoral
+CT,ES,Estremadura
+CT,MN,Minho
+CT,RB,Ribatejo
+CT,TM,Trás-os-Montes e Alto Douro
+CT3,ID,Ilhas Desertas
+CT3,MI,Madeira
+CT3,PS,Porto Santo
+CU,CV,Corvo
+CU,FA,Faial
+CU,FL,Flores
+CU,GR,Graciosa
+CU,PI,Pico
+CU,SJ,Sao Jorge
+CU,SM,São Miguel
+CU,ST,Santa Maria
+CU,TE,Terceira
+CX,CG,Cuchilla Grande
+CX,CH,Cuchilla de Haedo
+CX,NE,Noreste
+D4,IB,Ilhas Barlavento
+D4,IS,Ilhas Sotavento
+DL,AL,Allgäuer Alpen
+DL,AM,Ammergauer Alpen
+DL,BE,Benediktenwandgruppe
+DL,BG,Berchtesgadener Alpen
+DL,CG,Chiemgauer Alpen
+DL,EW,Estergebirge/Walchenseeberge
+DL,KW,Karwendelgebirge
+DL,MF,Mangfallgebirge
+DL,WS,Wettersteingebirge
+DM,BM,Bayern (Mittelgebirge)
+DM,BW,Baden-Württemberg
+DM,HE,Hessen
+DM,ND,Norddeutschland
+DM,NS,Niedersachsen
+DM,NW,Nordrhein-Westfalen
+DM,RP,Rheinland-Pfalz
+DM,SA,Sachsen-Anhalt
+DM,SR,Saarland
+DM,SX,Sachsen
+DM,TH,Thüringen
+DU2,AB,Abra
+DU2,AP,Apayao
+DU2,BA,Batanes
+DU2,CA,Cagayan
+DU2,IB,Isabela
+DU2,IF,Ifugao
+DU2,IN,Ilocos Norte
+DU2,IS,Ilocos Sur
+DU2,KA,Kalinga
+DU2,LA,La Union
+DU2,MP,Mountain Province
+DU2,NV,Neuva Vizcaya
+DU2,PA,Pangasinan
+DU2,QU,Quirino
+DU3,AU,Aurora
+DU3,BA,Bataan
+DU3,BU,Bulacan
+DU3,NE,Nueva Ecija
+DU3,PA,Pampanga
+DU3,TA,Tarlac
+DU3,ZA,Zambales
+DU4,AL,Albay
+DU4,CA,Catanduanes
+DU4,CN,Camarines Norte
+DU4,CS,Camarines Sur
+DU4,MA,Masbate
+DU4,SO,Sorsogon
+DUC,BA,Batangas
+DUC,CA,Cavite
+DUC,LA,Laguna
+DUC,QU,Quezon
+DUC,RI,Rizal
+E5,MG,Mangaia
+E5,RA,Rarotonga
+E7,BO,Bosnia
+E7,HA,Herzegovina
+EA1,AT,Asturias
+EA1,AV,Avila
+EA1,BU,Burgos
+EA1,CR,A Coruña
+EA1,CT,Cantabria
+EA1,LE,Leon
+EA1,LR,La Rioja
+EA1,LU,Lugo
+EA1,OU,Ourense
+EA1,PL,Palencia
+EA1,PO,Pontevedra
+EA1,SG,Segovia
+EA1,SL,Salamanca
+EA1,SO,Soria
+EA1,ZA,Zamora
+EA2,BI,Bizkaia
+EA2,HU,Huesca
+EA2,NV,Navarra
+EA2,SS,Gipuzkoa
+EA2,TE,Teruel
+EA2,VI,Araba/Álava
+EA2,ZG,Zaragoza
+EA3,BC,Barcelona
+EA3,GI,Girona
+EA3,LL,Lleida
+EA3,TA,Tarragona
+EA4,BA,Badajoz
+EA4,CC,Caceres
+EA4,CR,Ciudad Real
+EA4,CU,Cuenca
+EA4,GU,Guadalajara
+EA4,MD,Madrid
+EA4,TO,Toledo
+EA5,AB,Albacete
+EA5,AT,Alicante
+EA5,CS,Castellón
+EA5,MU,Murcia
+EA5,VL,Valencia
+EA6,CA,Cabrera
+EA6,FO,Formentera
+EA6,IB,Ibiza
+EA6,MA,Mallorca
+EA6,ME,Menorca
+EA6,SD,Sa Dragonera
+EA6,VE,Es Vedrà
+EA7,AL,Almería
+EA7,CA,Cádiz
+EA7,CO,Córdoba
+EA7,GR,Granada
+EA7,HU,Huelva
+EA7,JA,Jaén
+EA7,MA,Málaga
+EA7,SE,Sevilla
+EA8,FU,Fuerteventura Island
+EA8,GC,Gran Canaria Island
+EA8,GO,Gomera Island
+EA8,HI,Hierro Island
+EA8,LA,Lanzarote Island
+EA8,LP,La Palma Island
+EA8,TF,Tenerife Island
+EA9,CE,Ceuta
+EI,IE,Ireland East
+EI,IN,Ireland North
+EI,IS,Ireland South
+EI,IW,Ireland West
+ER,MD,Moldova
+ES,ES,Estonia
+F,AB,Alpes Mont Blanc
+F,AM,Alpes Méridionales
+F,CR,Côtes-du-Rhône
+F,JU,Jura
+F,MC,Massif-Central
+F,PE,Pyrénées Est
+F,PO,Pyrénées Ouest
+FG,BT,Guadeloupe
+FG,LD,Guadeloupe
+FG,MG,Guadeloupe
+FG,TB,Guadeloupe
+FH,GT,Mayotte - Grande Terre
+FH,MB,Mayotte - Mbouzi
+FH,MT,Mayotte - Mtsamboro
+FH,PT,Mayotte - Petite Terre
+FJ,SB,Saint Barthelemy
+FK,NP,North Province
+FK,SP,South Province
+FL,NO,Nord Ouest
+FL,SO,Sud Ouest
+FL,VL,Val de la Loire
+FL,VO,Vosges
+FM,FM,Martinique
+FP,FP,St. Pierre & Miquelon
+FR,RE,Reunion Island
+FS,SM,Saint Martin
+FW,WF,Wallis et Futuna
+G,CE,Central England
+G,DC,Devon & Cornwall
+G,LD,Lake District
+G,NP,Northern Pennines
+G,SB,Scottish Borders
+G,SC,South Central
+G,SE,Southern England
+G,SP,Southern Pennines
+G,TW,Tees to the Wash
+G,WB,Welsh Borders
+GD,GD,Isle of Man
+GI,AH,Antrim Hills
+GI,CA,County Armagh
+GI,MM,Mourne Mountains
+GI,SM,Sperrin Mountains
+GI,SW,South West
+GJ,JE,Bailiwick of Jersey
+GM,CS,Central Scotland
+GM,ES,Eastern Scotland
+GM,NS,Northern Scotland
+GM,SI,Scottish Islands
+GM,SS,Southern Scotland
+GM,WS,Western Scotland
+GU,GU,Bailiwick of Guernsey
+GW,MW,Mid Wales
+GW,NW,North Wales
+GW,SW,South Wales
+HA,DD,Dél-Dunántúl
+HA,EM,Észak-Magyarország
+HA,KD,Közép-Dunántúl
+HA,KM,Közép-Magyarország
+HA,ND,Nyugat-Dunántúl
+HB,AG,Aargau
+HB,AI,Appenzell Innerrhoden
+HB,AR,Appenzell Ausserrhoden
+HB,BE,Bern
+HB,BL,Basel Land
+HB,FR,Fribourg
+HB,GL,Glarus
+HB,GR,Graubünden
+HB,JU,Jura
+HB,LU,Luzern
+HB,NE,Neuchatel
+HB,NW,Nidwalden
+HB,OW,Obwalden
+HB,SG,St. Gallen
+HB,SH,Schaffhausen
+HB,SO,Solothurn
+HB,SZ,Schwyz
+HB,TG,Thurgau
+HB,TI,Ticino
+HB,UR,Uri
+HB,VD,Waadt
+HB,VS,Valais
+HB,ZG,Zug
+HB,ZH,Zürich
+HB0,LI,Liechtenstein
+HI,AB,Archipielago Beata (HI1)
+HI,CA,Capital (HI8)
+HI,CI,Cibao (HI3)
+HI,EE,Este (HI7)
+HI,NE,Nordeste (HI9)
+HI,NO,Noroeste (HI4)
+HI,SE,Sur Enriquillo (HI5)
+HI,VA,Sur Valle y Sur Valdesia (HI6)
+HL,BS,Busan
+HL,CB,Chungbuk
+HL,CN,Chungnam
+HL,DG,Daegu
+HL,DJ,Daejeon
+HL,GB,Gyeongbuk
+HL,GG,Gyeonggi
+HL,GJ,Gwangju
+HL,GN,Gyeongnam
+HL,GW,Gangwon
+HL,IN,Incheon
+HL,JB,Jeonbuk
+HL,JJ,Jeju
+HL,JN,Jeonnam
+HL,SL,Seoul
+HL,US,Ulsan
+HR,AT,Atlántida
+HR,CH,Choluteca
+HR,CM,Comayagua
+HR,CP,Copán
+HR,CR,Cortés
+HR,EP,El Paraíso
+HR,FM,Francisco Morazán
+HR,GD,Gracias a Dios
+HR,IB,Islas de la Bahía
+HR,IN,Intibucá
+HR,LM,Lempira
+HR,LP,La Paz
+HR,OC,Ocotepeque
+HR,SB,Santa Bárbara
+HR,VL,Valle
+HR,YO,Yoro
+I,AA,Alto Adige
+I,AB,Abruzzo
+I,BS,Basilicata
+I,CA,Campania
+I,CL,Calabria
+I,ER,Emilia Romagna
+I,FV,Friuli Venezia Giulia
+I,LG,Liguria
+I,LO,Lombardia
+I,LZ,Lazio
+I,MC,Marche
+I,MO,Molise
+I,PM,Piemonte
+I,PU,Puglia
+I,SI,Sicilia
+I,TN,Trentino
+I,TO,Toscana
+I,UM,Umbria
+I,VA,Valle d'Aosta
+I,VE,Veneto
+IA,LI,Linosa
+IA,PA,Pantelleria
+IS0,IS,Sardegna
+J8,VC,Saint Vincent and the Grenadines
+JA,AC,Aichi Prefecture
+JA,AM,Aomori Prefecture
+JA,AT,Akita Prefecture
+JA,CB,Chiba
+JA,FI,Fukui Prefecture
+JA,FS,Fukushima Prefecture
+JA,GF,Gifu
+JA,GM,Gunma Prefecture
+JA,HG,Hyogo Prefecture
+JA,HS,Hiroshima Prefecture
+JA,IB,Ibaraki Prefecture
+JA,IK,Ishikawa
+JA,IT,Iwate Prefecture
+JA,KN,Kanagawa Prefecture
+JA,KT,Kyoto Prefecture
+JA,ME,Mie Prefecture
+JA,MG,Miyagi Prefecture
+JA,NI,Niigata
+JA,NN,Nagano
+JA,NR,Nara Prefecture
+JA,OS,Osaka
+JA,OY,Okayama
+JA,SI,Shiga Prefecture
+JA,SN,Shimane
+JA,SO,Shizuoka Prefecture
+JA,ST,Saitama Prefecture
+JA,TG,Tochigi Prefecture
+JA,TK,Tokyo Prefecture
+JA,TT,Tottori Prefecture
+JA,TY,Toyama Prefecture
+JA,WK,Wakayama Prefecture
+JA,YG,Yamaguchi Prefecture
+JA,YM,Yamagata Prefecture
+JA,YN,Yamanashi Prefecture
+JA5,EH,Ehime Prefecture
+JA5,KA,Kagawa Prefecture
+JA5,KC,Kochi Prefecture
+JA5,TS,Tokushima Prefecture
+JA6,FO,Fukuoka Prefecture
+JA6,KG,Kagoshima
+JA6,KM,Kumamoto Prefecture
+JA6,MZ,Miyazaki Prefecture
+JA6,NS,Nagasaki Prefecture
+JA6,ON,Okinawa Prefecture
+JA6,OT,Oita Prefecture
+JA6,SG,Saga Prefecture
+JA8,HD,Hidaka Subprefecture
+JA8,HY,Hiyama Subprefecture
+JA8,IR,Iburi Subprefecture
+JA8,IS,Ishikari Subprefecture
+JA8,KK,Kamikawa Subprefecture
+JA8,KR,Kushiro Subprefecture
+JA8,NM,Nemuro Subprefecture
+JA8,OH,Okhotsk Subprefecture
+JA8,OM,Oshima Subprefecture
+JA8,RM,Rumoi Subprefecture
+JA8,SB,Shiribeshi Subprefecture
+JA8,SC,Sorachi Subprefecture
+JA8,SY,Soya Subprefecture
+JA8,TC,Tokachi Subprefecture
+JW,BA,Barentsoya
+JW,BI,Bjornoya
+JW,ED,Edgeoya
+JW,ES,Nordøst-Spitsbergen
+JW,HO,Hopen
+JW,KA,Kvitoya
+JW,KK,Kong Karls Land
+JW,MS,Midt-Spitsbergen
+JW,NA,Nordaustlandet
+JW,PK,Prins Karl Forland
+JW,SS,Sør-Spitsbergen
+JW,VS,Nordvest-Spitsbergen
+JX,JM,Jan Mayen
+K0M,CW,Centralwest
+K0M,NE,Northeast
+K0M,SE,Southeast
+KH0,NI,Northern Islands
+KH0,RO,Rota
+KH0,SA,Saipan
+KH0,TI,Tinian
+KH2,GU,Guam
+KH6,HW,Hawai'i
+KH6,KL,Kaho’olawe
+KH6,KU,Kaua’i
+KH6,LN,Lana’i
+KH6,MA,Maui
+KH6,MK,Moloka’i
+KH6,NI,Ni’ihau
+KH6,OH,O'ahu
+KH8,MI,Manuʻa Islands
+KH8,TI,Tutuila Island
+KLA,AE,ALEUTIONS EAST
+KLA,AN,ANCHORAGE
+KLA,AW,ALEUTIONS WEST
+KLA,BE,BETHEL
+KLA,BR,BRISTOL BAY
+KLA,CE,VALDEZ-CORDOVA EAST CENTRAL
+KLA,CW,VALDEZ-CORDOVA WEST CENTRAL
+KLA,DI,DILLINGHAM
+KLA,KM,KENAI MIDDLE
+KLA,KN,KENAI NORTH
+KLA,KS,KENAI SOUTH
+KLA,LN,LAKE AND PENINSULA NORTH
+KLA,LS,LAKE AND PENINSULA SOUTH
+KLA,MC,MATANUSKA-SUSITNA CENTRAL
+KLA,ME,MATANUSKA-SUSITNA EAST
+KLA,MW,MATANUSKA-SUSITNA WEST
+KLA,NK,KODIAK NORTH
+KLA,SK,KODIAK SOUTH
+KLA,VE,VALDEZ-CORDOVA EAST
+KLA,VW,VALDEZ-CORDOVA WEST
+KLA,YA,YAKUTAT
+KLF,AE,Northwest Arctic East
+KLF,AW,Northwest Arctic West
+KLF,CE,North Slope Central East
+KLF,CW,North Slope Central West
+KLF,DE,Denali
+KLF,FN,Fairbanks North Star
+KLF,KU,Kusilvak
+KLF,ME,North Slope Mid East
+KLF,MW,North Slope Mid West
+KLF,NE,North Slope East
+KLF,NO,Nome
+KLF,NW,North Slope West
+KLF,SF,Southeast Fairbanks
+KLF,TT,Tok / Upper Tanana
+KLF,YK,Yukon-Koyukuk
+KLS,HA,Haines
+KLS,HO,Hoonah-Angoon
+KLS,JU,Juneau
+KLS,KE,Ketchikan Gateway
+KLS,PE,Petersburg
+KLS,SI,Sitka
+KLS,SK,Skagway
+KLS,WR,Wrangell
+KP4,CC,Cordillera Central
+KP4,CE,Cordillera East
+KP4,CU,Culebra Island
+KP4,CW,Cordillera West
+KP4,DI,Desecheo Island
+KP4,VQ,Vieques Island
+LA,AA,Aust-Agder
+LA,AH,Akershus
+LA,BU,Buskerud
+LA,FM,Finnmark
+LA,HE,Helgeland
+LA,HL,Hordaland
+LA,HM,Hedmark
+LA,MR,Møre og Romsdal
+LA,NL,Nordland North
+LA,NT,Nord-Trøndelag
+LA,OF,Østfold
+LA,OL,Oppland
+LA,OS,Oslo
+LA,RL,Rogaland
+LA,SA,Salten
+LA,SF,Sogn og Fjordane
+LA,ST,Sør-Trøndelag
+LA,TM,Telemark
+LA,TN,Troms North
+LA,TR,Troms South
+LA,VA,Vest-Agder
+LA,VF,Vestfold
+LUD,TA,Tandilia
+LUD,VE,Ventania
+LUH,SC,Sierras Chicas
+LUH,SG,Sierras Grandes
+LUH,SO,Sierras Occidentales
+LUI,MI,Misiones
+LUK,TN,Tucumán Norte
+LUK,TS,Tucumán Sur
+LUM,FH,Cordillera Frontal Las Heras
+LUM,FL,Cordillera Frontal Lujan
+LUM,FS,Cordillera Frontal San Carlos
+LUM,FT,Cordillera Frontal Tupungato
+LUM,FU,Cordillera Frontal Tunuyan
+LUM,HU,Huayquerías
+LUM,MN,Cordillera Principal Malargue Norte
+LUM,MS,Cordillera Principal Malargue Sur
+LUM,PC,Precordillera
+LUM,PH,Cordillera Principal Las Heras
+LUM,PL,Cordillera Principal Lujan
+LUM,PR,Cordillera Principal San Rafael
+LUM,PS,Cordillera Principal San Carlos
+LUM,PU,Cordillera Principal Tunuyan
+LUM,PY,Payunia
+LUM,SR,Bloque de San Rafael
+LUN,SE,Santiago del Estero
+LUP,AL,Albardón
+LUP,AN,Angaco
+LUP,CA,Caucete
+LUP,CC,Calingasta Centro
+LUP,CE,Calingasta Este
+LUP,CN,Calingasta Norte
+LUP,CS,Calingasta Sur
+LUP,IN,Iglesia Norte
+LUP,IS,Iglesia Sur
+LUP,JA,Jáchal
+LUP,PO,Pocitos
+LUP,RA,Rawson
+LUP,RI,Rivadavia
+LUP,SA,Sarmiento
+LUP,UL,Ullúm
+LUP,VL,Valle Fértil
+LUP,ZO,Zonda
+LUQ,OC,Sierras Occidentales
+LUQ,OR,Sierras Orientales
+LUQ,SL,Sierras de San Luis
+LUR,AB,Ambato
+LUR,AG,Andalgalá
+LUR,AN,Ancasti
+LUR,AS,Antofagasta de la Sierra
+LUR,BE,Belén
+LUR,CA,Capital
+LUR,CY,Capayán
+LUR,PA,Paclín
+LUR,PO,Pomán
+LUR,SM,Santa María
+LUR,TG,Tinogasta
+LUS,CE,Cordillera Este
+LUS,CN,Cordillera Noroeste
+LUS,FA,Famatina
+LUS,LL,Los Llanos
+LUS,VE,Velasco
+LUU,LP,La Pampa
+LUV,BA,Bariloche
+LUV,EC,El Cuy
+LUV,NJ,Nueve de Julio
+LUV,NO,Ñorquincó
+LUV,PI,Pilcaniyeu
+LUV,SA,San Antonio
+LUV,VA,Valcheta
+LUV,VM,Veinticinco de Mayo
+LUY,AL,Aluminé
+LUY,AO,Añelo
+LUY,CC,Collón Curá
+LUY,CF,Confluencia
+LUY,CL,Catán Lil
+LUY,CM,Chos Malal
+LUY,HL,Huiliches
+LUY,LC,Lácar
+LUY,LG,Los Lagos
+LUY,LP,Loncopué
+LUY,MN,Minas
+LUY,PC,Pehuenches
+LUY,PL,Picún Leufú
+LUY,PN,Picunches
+LUY,QN,Ñorquín
+LUY,ZP,Zapala
+LX,LX,Luxembourg
+LY,LY,Lithuania
+LZ,CB,Central Balkan Mountains
+LZ,EB,East Balkan Mountains
+LZ,KV,Kraishte Region
+LZ,OB,Osogovo-Belasitsa Region
+LZ,PS,Pirin & Slavianka
+LZ,RL,Rila
+LZ,RO,Rodopi
+LZ,SG,Sredna Gora
+LZ,SS,Strandzha & Sakar
+LZ,WB,West Balkan Mountains
+OD,BE,Beirut
+OD,BY,Byblos
+OD,CE,Cedars
+OD,JO,Jounieh
+OE,BL,Burgenland
+OE,KT,Kärnten
+OE,NO,Niederösterreich
+OE,OO,Oberösterreich
+OE,SB,Salzburg
+OE,ST,Steiermark
+OE,TI,Tirol
+OE,TL,Tirol
+OE,VB,Vorarlberg
+OE,WI,Wien
+OH,JS,Järvi-Suomi
+OH,KI,Kilpisjärvi-Pallas
+OH,KU,Kuusamon ylänkö
+OH,MU,Muotkatunturit
+OH,SL,Saariselkä-Lemmenjoki
+OK,JC,Jihočeský
+OK,JM,Jihomoravský
+OK,KA,Karlovarský
+OK,KR,Královéhradecký
+OK,LI,Liberecký
+OK,MO,Moravskoslezský
+OK,OL,Olomoucký
+OK,PA,Pardubický
+OK,PL,Plzeňský
+OK,ST,Středočeský
+OK,US,Ústecký
+OK,VY,Vysočina
+OK,ZL,Zlínský
+OM,BA,Bratislavský
+OM,BB,Banskobystrick
+OM,KE,Košický
+OM,NR,Nitriansky
+OM,PO,Prešovský
+OM,TN,Trenciansky
+OM,TT,Trnavský
+OM,ZA,Žilinský
+ON,ON,Belgium
+OY,OY,Faroe Islands
+OZ,OZ,Denmark
+P4,AR,Aruba
+PA,PA,Netherlands
+PJ2,CU,Curaçao
+PJ4,BO,Bonaire
+PJ5,SE,Sint Eustatius
+PJ6,SA,Saba
+PJ7,SM,Sint Maarten
+PP1,AC,Afonso Cláudio
+PP1,AL,Alegre
+PP1,CI,Cachoeiro de Itapemirim
+PP1,CO,Colatina
+PP1,GP,Guarapari
+PP1,IM,Itapemirim
+PP1,LI,Linhares
+PP1,MO,Montanha
+PP1,NC,Nova Venécia
+PP1,SF,Barra de São Francisco
+PP1,SM,São Mateus
+PP1,ST,Santa Teresa
+PP1,VI,Vitória
+PP2,CG,Centro Goiano
+PP2,CV,Chapada dos Veadeiros
+PP2,LG,Leste Goiano
+PP2,NG,Noroeste Goiano
+PP2,PO,Porangatu
+PP2,SG,Sul Goiano
+PP5,GF,Grande Florianópolis
+PP5,NC,Norte Catarinense
+PP5,OC,Oeste Catarinense
+PP5,RS,Serrana
+PP5,SC,Sul Catarinense
+PP5,VI,Vale do Itajaí
+PP6,SE,Sergipe
+PP7,AA,Agreste Alagoano
+PP7,LA,Leste Alagoano
+PP7,SA,Sertão Alagoano
+PQ2,AG,Araguaína
+PQ2,BP,Bico do Papagaio
+PQ2,DN,Dianópolis
+PQ2,GP,Gurupi
+PQ2,JP,Jalapão
+PQ2,MT,Miracema do Tocantins
+PQ2,PN,Porto Nacional
+PQ2,RF,Rio Formoso
+PR8,AI,Alto Itapecuru
+PR8,BS,Balsas
+PR8,CM,Mangabeiras
+PR8,CX,Caxias
+PR8,IZ,Imperatriz
+PR8,MG,Alto Mearim e Grajau
+PR8,PD,Pindare
+PR8,PF,Porto Franco
+PS7,AP,Agreste Potiguar
+PS7,CP,Central Potiguar
+PS7,OP,Oeste Potiguar
+PS8,AC,Alto Medio Caninde
+PS8,AG,Alto Medio Gurgueia
+PS8,AP,Alto Parnaiba Piauiense
+PS8,CM,Campo Maior
+PS8,ES,Chapadas do Extremo Sul Piauiense
+PS8,FL,Floriano
+PS8,LT,Litoral Piauiense
+PS8,MP,Medio Parnaiba Piauiense
+PS8,PC,Picos
+PS8,SR,Sao Raimundo Nonato
+PS8,VP,Valenca do Piaui
+PT2,DF,Distrito Federal
+PT7,CS,Centro-Sul Cearense
+PT7,FO,Fortaleza
+PT7,JA,Jaguaribe
+PT7,NC,Norte Cearense
+PT7,NO,Noroeste Cearense
+PT7,SC,Sul Cearense
+PT7,ST,Sertões Cearenses
+PY1,AP,Santo Antônio de Pádua
+PY1,BP,Barra do Piraí
+PY1,CC,Cantagalo-Cordeiro
+PY1,CG,Campos dos Goytacazes
+PY1,IG,Itaguaí
+PY1,IL,Baía da Ilha Grande
+PY1,IP,Itaperuna
+PY1,MA,Macaé
+PY1,MC,Macacu-Caceribu
+PY1,MM,Santa Maria Madalena
+PY1,NF,Nova Friburgo
+PY1,RJ,Rio de Janeiro
+PY1,RL,Região dos Lagos
+PY1,RS,Região Serrana
+PY1,SJ,Bacia de São João
+PY1,TR,Três Rios
+PY1,VA,Vassouras
+PY1,VP,Vale do Paraíba Fluminense
+PY2,BO,Bocaina
+PY2,CN,Cuestas Centro Norte
+PY2,CS,Cuestas Centro Sul
+PY2,IL,Ilhas
+PY2,LE,Leste
+PY2,MA,Mantiqueira
+PY2,MC,Mar Centro-Norte
+PY2,ML,Mar Centro-Sul
+PY2,MN,Mar Norte
+PY2,MS,Mar Sul
+PY2,NE,Nordeste
+PY2,NO,Norte
+PY2,PA,Paranapiacaba
+PY2,SE,Sudeste
+PY2,VA,Vale
+PY3,NE,Nordeste
+PY3,NO,Noroeste
+PY3,OC,Centro Ocidental
+PY3,OR,Centro Oriental
+PY3,PA,Metropolitana
+PY3,SE,Sudeste
+PY3,SO,Sudoeste
+PY4,BH,Metropolitana de Belo Horizonte
+PY4,CM,Central Mineira
+PY4,CV,Campos das Vertentes
+PY4,JQ,Jequitinhonha
+PY4,ML,Zona da Mata - Leste
+PY4,MO,Zona da Mata - Oeste
+PY4,NM,Norte de Minas
+PY4,NO,Noroeste de Minas
+PY4,OM,Oeste de Minas
+PY4,SM,Sul / Sudoeste de Minas
+PY4,TM,Triângulo Mineiro / Alto Paranaíba
+PY4,VL,Vale do Rio Doce - Leste
+PY4,VM,Vale do Mucuri
+PY4,VO,Vale do Rio Doce - Oeste
+PY5,CA,Cerro Azul
+PY5,CO,Centro Oriental
+PY5,CT,Curitiba
+PY5,NC,Norte Central
+PY5,NO,Noroeste
+PY5,NP,Norte Pioneiro
+PY5,PA,Paranaguá
+PY5,RN,Rio Negro
+PY5,SE,Sudeste
+PY5,SU,Sul
+PY6,CN,Centro Norte
+PY6,CS,Centro Sul
+PY6,EO,Extremo Oeste
+PY6,II,Ilhéus / Itabuna
+PY6,JV,Jequié / Vitória da Conquista
+PY6,NE,Nordeste
+PY6,PS,Porto Seguro
+PY6,SA,Salvador
+PY6,SF,São Francisco
+PYF,FN,Fernando de Noronha
+PYT,TM,Trindade e Martim Vaz
+R3,CF,Central Federal District
+R3,VF,Volga Federal District
+R9U,CE,Central Urals
+R9U,NO,Northern Urals
+R9U,SO,Southern Urals
+S5,BI,"Posavsko hribovje, Kozjansko in Bizeljsko"
+S5,BR,"Primorje, Kras, Brkini in Javorniki"
+S5,CP,"Škofjeloško, Cerkljansko in Polhograjsko hribovje"
+S5,GS,"Goricko, Slovenjske Gorice in Haloze"
+S5,JA,Julijske Alpe
+S5,KA,Karavanke
+S5,KS,Kamniško - Savinjske Alpe
+S5,PK,Pohorje in Kozjak
+S5,RG,"Bloke, Kocevsko, Bela krajina, Gorjanci"
+S5,TK,"Trnovski gozd, Idrijsko hribovje, Kambreško"
+S7,SC,Seychelles
+SM,DA,Dalarna
+SM,GA,Gävleborg
+SM,JL,Jämtland
+SM,JO,Jönköpings Län
+SM,NB,Norrbotten
+SM,OG,Östergötland
+SM,OR,Örebro
+SM,SE,Skåne
+SM,VB,Västerbotten
+SM,VD,Västra Götaland
+SM,VL,Värmland
+SM,VN,Västernorrland
+SP,BI,Bieszczady
+SP,BP,Pogórze Beskidzkie
+SP,BS,Beskidy Środkowe
+SP,BW,Beskidy Wschodnie
+SP,BZ,Beskidy Zachodnie
+SP,GS,Góry Świętokrzyskie
+SP,KA,Karkonosze
+SP,PI,Pieniny
+SP,PO,Niziny
+SP,SP,Przedgórze Sudeckie
+SP,SS,Sudety Środkowe
+SP,SW,Sudety Wschodnie
+SP,SZ,Sudety Zachodnie
+SP,TA,Tatry
+SP,WS,Wyżyna Śląska
+SV,AA,Mt. Athos
+SV,AG,Aegean Islands
+SV,AT,Attica
+SV,CR,Crete
+SV,EP,Eperus
+SV,EV,Evia
+SV,IO,Ionian Islands
+SV,MC,Macedonia
+SV,PL,Peloponesse
+SV,ST,Sterea Ellada
+SV,TH,Thrace
+SV,TL,Thessaly
+TF,AL,East Iceland
+TF,NL,North Iceland
+TF,SL,South Iceland
+TF,SN,Snæfellsnes
+TF,SV,Southwest Iceland
+TF,VE,Vestmannaeyjar
+TF,VF,Vestfirðir
+TI,AL,Alajuela
+TI,CA,Cartago
+TI,GU,Guanacaste
+TI,HE,Heredia
+TI,LI,Limón
+TI,PU,Puntarenas
+TI,SJ,San José
+TK,TK,Corsica
+UT,CA,Carpathian Mountains
+UT,CR,The Crimea
+V5,ER,Erongo
+V5,HA,Hardap
+V5,KA,!Karas
+V5,KH,Khomas
+V5,NK,North Kunene
+V5,OK,Oshikoto
+V5,OM,Omaheke
+V5,OS,Oshana
+V5,OT,Otjozondjupa
+V5,OU,Omusati
+V5,SK,South Kunene
+VE1,CB,Cape Breton Island
+VE1,NS,Nova Scotia mainland
+VE2,AT,Abitibi-Témiscamingue
+VE2,BL,Bas-Saint-Laurent
+VE2,BU,Baie d'Ungava
+VE2,CN,Côte-Nord
+VE2,CV,Région de Charlevoix
+VE2,ES,Estrie
+VE2,GA,Gaspésie
+VE2,HR,Baies de Hannah et de Rupert
+VE2,JH,Baies James et d'Hudson
+VE2,LE,Saint-Laurent nord-est
+VE2,LR,Laurentides
+VE2,MA,Région de la Mauricie
+VE2,ML,Montréal-Montérégie
+VE2,OU,Outaouais
+VE2,QC,Région de Québec
+VE2,SC,Sept-Rivières - Caniapiscau
+VE2,SG,Saguenay / Lac St-Jean
+VE2,SJ,Saguenay et lac Saint-Jean
+VE3,NE,North East Ontario
+VE3,NW,North West Ontario
+VE3,SO,South Ontario
+VE4,MP,Manitoba Parkland
+VE4,MS,Manitoba Shield
+VE5,BP,Boreal Plains
+VE5,BS,Boreal Shield
+VE5,SP,Saskatchewan Prairies
+VE5,TS,Taiga Shield
+VE6,AS,Assiniboine
+VE6,BC,Buchanan
+VE6,BF,Coal Branch
+VE6,BK,Blakiston
+VE6,CH,Cypress Hills
+VE6,CL,Cleveland
+VE6,CM,Caribou Mountains
+VE6,EA,East Alberta
+VE6,EC,Edith Cavell
+VE6,GS,Goodsir
+VE6,HC,Hector
+VE6,HN,Hanington
+VE6,JF,Joffre
+VE6,JS,Jasper South-East
+VE6,KL,Kintla
+VE6,RA,Rae
+VE6,RJ,Rajah
+VE6,ST,Starlight
+VE6,VC,Victoria Cross Ranges
+VE7,AC,Alberni-Clyoquot
+VE7,AT,Atlin
+VE7,BN,Bulkley Nechako North
+VE7,BS,Bulkley Nechako South
+VE7,BT,Bute Inlet
+VE7,CC,Central Coast
+VE7,CE,Columbia Shuswap East
+VE7,CK,Central Kootenay
+VE7,CL,Capital
+VE7,CN,Central Coast North
+VE7,CO,Cariboo
+VE7,CP,Columbia-Shuswap
+VE7,CS,Comox-Strathcona
+VE7,CV,Cowichan Valley
+VE7,CW,Cariboo West
+VE7,DK,Dune Za Keyih
+VE7,DL,Dease Lake
+VE7,EK,East Kootenay
+VE7,EN,East Kootenay North
+VE7,FF,Fraser Fort George
+VE7,FN,Fraser Fort George North
+VE7,FV,Fraser Valley
+VE7,GH,Good Hope Lake
+VE7,GV,Greater Vancouver
+VE7,KB,Kootenay Boundary
+VE7,KS,Kitimat-Stikine
+VE7,MW,Mount Waddington
+VE7,NC,North Rockies Central
+VE7,NE,North Rockies East
+VE7,NG,Nisga
+VE7,NI,North Island
+VE7,NO,Nanaimo
+VE7,NR,Northern Rockies
+VE7,OK,Central Okanagan
+VE7,ON,Okanagan North
+VE7,OS,Okanagan-Similkameen
+VE7,PE,Peace River
+VE7,PR,Powel River
+VE7,QC,Queen Charlotte
+VE7,SC,Sunshine Coast
+VE7,SE,Stikine
+VE7,SJ,Fort St. John
+VE7,SL,Squamish-Lillooet
+VE7,SP,Stikine Panhandle
+VE7,SQ,Skeena-Queen Charlotte
+VE7,SR,Stikine River
+VE7,ST,Stewart
+VE7,SZ,Spatsizi Plateau
+VE7,TK,Terrace / Kitimat
+VE7,TN,Thompson-Nicola
+VE9,AL,Albert County
+VE9,CA,Carleton County
+VE9,KG,Kings County
+VE9,MW,Madawaska County
+VE9,ND,Northumberland County
+VE9,RG,Restigouche County
+VE9,SJ,Saint John County
+VE9,VT,Victoria County
+VE9,WD,Westmorland County
+VE9,YK,York County
+VK1,AC,Australian Capital Territory
+VK2,CT,Central Tablelands
+VK2,CW,Central West
+VK2,HU,Hunter
+VK2,IL,Illawarra
+VK2,LW,Lower Western
+VK2,MN,Mid North Coast
+VK2,NR,Northern Rivers
+VK2,NT,Northern Tablelands
+VK2,NW,Northwest Slopes and Plains
+VK2,RI,Riverina
+VK2,SC,South Coast
+VK2,SM,Snowy Mountains
+VK2,ST,Southern Tablelands
+VK2,SW,South West Slopes
+VK2,SY,Sydney
+VK2,UW,Upper Western
+VK3,VC,Victoria - Central Region
+VK3,VE,Victoria - North East
+VK3,VG,Victoria - East Gippsland
+VK3,VN,Victoria - North Central
+VK3,VS,Victoria - South West
+VK3,VT,Victoria - West/South Gippsland
+VK3,VU,Victoria - North Country
+VK3,VW,Victoria - Wimmera
+VK4,CA,Capricornia
+VK4,CH,Central Highlands & Coalfields
+VK4,CW,Central Coast and Whitsundays
+VK4,NF,Northern Goldfields & Upper Flinders
+VK4,NG,Gulf Country
+VK4,NH,Herbert & Lower Burdiken
+VK4,NP,Peninsular
+VK4,NT,North Tropical Coast & Tablelands
+VK4,SD,Darling Downs and Granite Belt
+VK4,SE,Southeast Coast
+VK4,SW,Wide Bay & Burnett
+VK4,WC,Central West
+VK4,WM,Maranoa and Warrego
+VK4,WN,North West
+VK5,NE,North East
+VK5,NW,North West
+VK5,SE,South East
+VK5,SW,South West
+VK6,CG,Central Goldfields
+VK6,CW,Central West
+VK6,KI,Kimberleys
+VK6,PI,Pilbara
+VK6,SG,Southern Goldfields
+VK6,SW,South West
+VK7,CH,Central Highlands
+VK7,EC,East Coast
+VK7,NC,North Coast
+VK7,NE,North East
+VK7,NW,North West
+VK7,SC,South Coast
+VK7,SW,South West
+VK7,WC,West Coast
+VK8,AL,Central
+VK8,DA,Northern
+VK8,UL,South
+VK9,CH,Christmas Island
+VK9,LH,Lord Howe Island Group
+VK9,NO,Norfolk Island Group
+VKM,MI,Macquarie Island
+VO1,AV,Avalon
+VO1,CE,Central
+VO1,NP,Northern Peninsula
+VO1,SC,South Coast
+VO1,WC,West Coast
+VO2,TM,Torngat Mountains
+VP0,SG,South Georgia
+VP0,SS,South Sandwich Islands
+VP8,EF,East Falkland
+VP8,WF,West Falkland
+VR,HK,Hong Kong
+VY1,LL,Lake Laberge
+VY1,WH,Whitehorse
+VY2,PE,Prince Edward Island
+W0C,FR,CO-Front Range
+W0C,LG,CO-La Garita
+W0C,MZ,CO-Mt Zirkel WA
+W0C,PR,CO-Park Range
+W0C,RG,CO-Rio Grande
+W0C,RP,CO-Roan Plateau
+W0C,SC,CO-Sangre De Christo
+W0C,SJ,CO-San Juan
+W0C,SL,CO-San Luis
+W0C,SM,CO-San Miguel
+W0C,SP,CO-South Park
+W0C,SR,CO-Sawatch Range
+W0C,UR,CO-Uncompahgre
+W0C,WE,CO-West Elk Mtns
+W0D,BB,SD-Black Hills - Badlands
+W0D,ES,Eastern South Dakota
+W0D,MR,Missouri River
+W0D,ND,ND-North Dakota
+W0D,NW,Custer Region
+W0I,IA,Iowa
+W0M,ES,Eureka Springs Escarpment
+W0M,SF,Saint Francois Mountains
+W0M,SP,Salem Plateau
+W0N,PH,Panhandle
+W0N,SH,Sandhills
+W1,AM,Appalachian Mountains
+W1,CB,Connecticut Berkshires
+W1,CR,Connecticut River
+W1,DI,Desert Island
+W1,EM,Eastern Maine
+W1,GM,Green Mountains
+W1,HA,New Hampshire Appalachians
+W1,HH,Hanging Hills
+W1,MB,Massachusetts Berkshires
+W1,MR,Metacomet Ridge
+W1,MV,Merrimack Valley
+W1,NK,Northeast Kingdom
+W1,NL,New Hampshire Lakes
+W2,EH,East of the Hudson
+W2,GA,Greater Adirondacks
+W2,GC,Greater Catskills
+W2,NJ,New Jersey
+W2,WE,Western New York
+W3,CR,Capital Region
+W3,CT,Central Ranges
+W3,ER,Erie
+W3,PD,Pennsylvania Dutch
+W3,PH,Philadelphia
+W3,PO,Pocono
+W3,PT,Pittsburgh
+W3,PW,Pennsylvania Wilds
+W3,SV,Susquehanna Valley
+W3,WE,Western
+W4A,CP,Cumberland Plateau
+W4A,HR,Highland Rim
+W4A,PT,Piedmont
+W4A,VR,Valley and Ridge
+W4C,CM,NC-Central Mountains
+W4C,EM,NC-Eastern Mountains
+W4C,EP,NC-Eastern Piedmont
+W4C,US,SC-Upstate
+W4C,WM,NC-Western Mountains
+W4C,WP,NC-Western Piedmont
+W4G,CE,Central
+W4G,HC,Historic High Country
+W4G,NG,North Georgia
+W4K,EC,East Coal Field Mountains
+W4K,KA,Knob Arc Mountains
+W4K,PR,Pennyrile Mountains
+W4T,CA,Cumberland - Appalachian Plateau
+W4T,NB,Nashville Basin
+W4T,RV,Ridge and Valley
+W4T,SU,Smoky and Unaka Mountains
+W4V,FC,VA-Fincastle
+W4V,GC,VA-Gate City
+W4V,HB,VA-Harrisonburg
+W4V,LX,VA-Lexington
+W4V,RA,VA-Roanoke
+W4V,SH,VA-Shenandoah Park
+W4V,WV,VA-Wytheville Park
+W4V,AB,VA-Abingdon
+W4V,BR,VA-Blue Ridge
+W5A,BR,Buffalo River
+W5A,CA,Caddo Mountains
+W5A,CS,Cossatot Mountains
+W5A,MA,Magazine Mountains
+W5A,OA,Oak Mountains
+W5A,OH,Ouachita Mountains
+W5A,OZ,Ozark Mountains
+W5A,PT,Poteau Mountains
+W5M,MS,Mississippi Mountains
+W5N,AI,Animas Mountains
+W5N,AP,Apache National Forest
+W5N,BA,Bosque Del Apache NWR
+W5N,BL,Black Range
+W5N,BU,Burro Mountains
+W5N,CB,Caballo Mountains
+W5N,CC,Chama Canyon
+W5N,CD,Coronado National Forest
+W5N,CM,Cimarron Range
+W5N,CN,Cornudas Mountains
+W5N,CO,Cibola National Forest
+W5N,CU,Chuska Mountains
+W5N,DA,Datil Mountains
+W5N,EL,Eastern New Mexico Flatlands
+W5N,FL,Florida Mountains
+W5N,GF,Gila National Forest
+W5N,GW,Gila Wilderness
+W5N,HT,Hatchet Mountains
+W5N,MG,Magdalena Mountains
+W5N,MI,Mimbres Mountains
+W5N,MO,Mockingbird Mountains
+W5N,NL,Navajo Lake
+W5N,OR,Organ Mountains
+W5N,OT,Ortega Mountains
+W5N,PA,Pinos Altos Range
+W5N,PL,Peloncillo Mountains
+W5N,PO,Potrillo Mountains
+W5N,PW,Pecos Wilderness
+W5N,RO,Robledo Mountains
+W5N,SC,Sacramento Mountains
+W5N,SE,Sierra De Las Valles Range
+W5N,SG,Sierra Grande Range
+W5N,SI,Sandia Mountains
+W5N,SL,Sierra Lucero Range
+W5N,SM,San Mateo Mountains
+W5N,SR,San Andres Mountains
+W5N,SS,Sangre De Cristo Mountains
+W5O,BS,Brushy Mountains
+W5O,KI,Kiamichi Mountains
+W5O,OU,Ouachita National Forest
+W5O,QA,Quartz Mountains SP
+W5O,SO,Sans Bois Mountains
+W5O,WI,Wichita Mountains
+W5O,WO,White Oak Mountains
+W5T,BG,Bullis Gap Mountains
+W5T,BO,Bofecillos Mountains
+W5T,CE,Cienega Mountains
+W5T,CH,Chinati Mountains
+W5T,CI,Chisos Mountains
+W5T,CR,Christmas Mountains
+W5T,DE,Davis Mountains East
+W5T,DH,Dead Horse Mountains
+W5T,DN,Del Norte Mountains
+W5T,DW,Davis Mountains West
+W5T,EA,Eagle Mountains
+W5T,FR,Franklin Mountains
+W5T,GL,Glass Mountains
+W5T,GU,Guadalupe Mountains
+W5T,HA,Haymond Mountains
+W5T,NT,North Texas
+W5T,PB,Pena Blanca Mountains
+W5T,PU,Puertecita Mountains
+W5T,QU,Quitman Mountains
+W5T,SB,Study Butte
+W5T,SD,Sierra Diablo Mountains
+W5T,SN,Santiago Mountains
+W5T,ST,South Texas
+W5T,SV,Sierra Vieja Mountains
+W5T,VH,Van Horn Mountains
+W6,CC,Coastal Ranges
+W6,CD,Desert Ranges
+W6,CN,Northern Ranges
+W6,CT,Transverse Ranges
+W6,CV,Central Valley
+W6,IN,Inyo Mountains
+W6,NC,Northern Coastal Ranges
+W6,ND,Northern Desert
+W6,NE,Northeastern Ranges
+W6,NS,Northern Sierra
+W6,NW,Northwestern Ranges
+W6,SC,Southern Coastal Ranges
+W6,SD,Southern Desert
+W6,SN,Sierra Nevada
+W6,SS,Southern Sierra
+W6,WH,White Mountains
+W7A,AE,AZ-Eastern Arizona
+W7A,AP,Apache County
+W7A,AW,AZ-Western Arizona
+W7A,CN,"Coconino County, North"
+W7A,CO,Cochise County
+W7A,CS,"Coconino County, South"
+W7A,GI,Gila County
+W7A,GM,Graham County
+W7A,GR,Greelee County
+W7A,MN,"Maricopa County, North"
+W7A,MS,"Maricopa County, South"
+W7A,NA,Navajo County
+W7A,NM,Northern Mohave County
+W7A,PE,"Pima County, East"
+W7A,PN,Pinal County
+W7A,PW,"Pima County, West"
+W7A,PZ,La Paz County
+W7A,SC,Santa Cruz County
+W7A,SM,Southern Mohave County
+W7A,YU,Yuma County
+W7A,YV,Yavapai County
+W7I,BC,ID - Boise County
+W7I,BL,ID - Blaine County
+W7I,CI,ID - SouthCentral Idaho
+W7I,CU,ID - Custer County
+W7I,ER,ID - Eastern Region
+W7I,IC,ID - Idaho County
+W7I,LE,ID - Lemhi County
+W7I,NI,ID - NorthCentral Idaho
+W7I,NP,ID - Northern Panhandle
+W7I,SI,ID - SouthEastern Idaho
+W7I,SR,ID - SouthWestern Region
+W7I,VC,ID - Valley County
+W7M,BE,MT - Beaverhead
+W7M,BR,MT - Butte Region
+W7M,CL,MT - Lewis & Clark
+W7M,FN,MT - Flathead-North
+W7M,FS,MT - Flathead-South
+W7M,GA,MT - Granite
+W7M,GR,MT - Glacier Region
+W7M,HB,MT - Helena-Bozeman
+W7M,LI,MT - Lincoln
+W7M,LM,MT - Lake-Missoula
+W7M,LO,MT - Lolo
+W7M,NF,MT - Northern Foothills
+W7M,PN,MT - Plains-North
+W7M,PS,MT - Plains-South
+W7M,RC,MT - Ravalli County
+W7M,SF,MT - Southern Foothills
+W7N,CK,NV-Clark
+W7N,EL,NV-Eureka-Lander
+W7N,EM,NV-Esme-Mineral
+W7N,EN,NV-Elko North
+W7N,ES,NV-Elko South
+W7N,HU,NV-Humboldt
+W7N,LN,NV-Lincoln
+W7N,NN,NV-Nye North
+W7N,NS,NV-Nye South
+W7N,PC,NV-Pershing-Churchill
+W7N,TR,NV-Tahoe Region
+W7N,WC,NV-Washoe County
+W7N,WP,NV-White Pine
+W7O,CC,OR-Central Coast
+W7O,CE,OR-Central Oregon
+W7O,CM,OR-Cascades Middle
+W7O,CN,OR-Cascades North
+W7O,CS,OR-Cascades South
+W7O,NC,OR-North Coastal
+W7O,NE,OR-Northeast
+W7O,SC,OR-South Coastal
+W7O,SE,OR-Southeast
+W7O,WV,OR-Willamette Valley
+W7U,BE,Beaver County
+W7U,BO,Box Elder County
+W7U,CA,Cache County
+W7U,CR,Carbon County
+W7U,DA,Daggett County
+W7U,DU,Duchesne County
+W7U,DV,Davis County
+W7U,EM,Emery County
+W7U,GA,Garfield County
+W7U,GR,Grand County
+W7U,IR,Iron County
+W7U,JU,Juab County
+W7U,KA,Kane County
+W7U,MI,Millard County
+W7U,MO,Morgan County
+W7U,NU,North Utah
+W7U,PI,Piute County
+W7U,RI,Rich County
+W7U,SE,Sevier County
+W7U,SJ,San Juan County
+W7U,SL,Salt Lake County
+W7U,SM,Summit County
+W7U,SP,Sanpete County
+W7U,SU,South Utah
+W7U,TO,Tooele County
+W7U,UI,Uintah County
+W7U,UT,Utah County
+W7U,WA,Wasatch County
+W7U,WB,Weber County
+W7U,WS,Washington County
+W7U,WY,Wayne County
+W7W,CH,WA-Chelan
+W7W,CW,WA-Central Washington
+W7W,FR,WA-Ferry
+W7W,KG,WA-King
+W7W,LC,WA-Lower Columbia
+W7W,MC,WA-Middle Columbia
+W7W,NO,WA-Northern Olympics
+W7W,OK,WA-Okanogan
+W7W,PL,WA-Pacific-Lewis
+W7W,PO,WA-Pend Oreille
+W7W,RS,WA-Rainier-Salish
+W7W,SK,WA-Skagit
+W7W,SN,WA-Snohomish
+W7W,SO,WA-Southern Olympics
+W7W,ST,WA-Stevens
+W7W,WE,WA-Washington East
+W7W,WH,WA-Whatcom
+W7Y,EW,East Wyoming
+W7Y,FT,Fremont
+W7Y,NW,North Wyoming
+W7Y,PA,Park
+W7Y,SL,Sublette
+W7Y,SW,South Wyoming
+W7Y,TT,Teton
+W8M,LP,Michigan Lower Peninsula
+W8M,UP,Michigan Upper Peninsula
+W8O,CT,Central
+W8O,NE,Northeast
+W8O,SE,Southeast
+W8O,SW,Southwest
+W8V,EP,Eastern Panhandle
+W8V,HM,Hatfield-McCoy Mountains
+W8V,MC,Mountaineer Country
+W8V,ML,Mountain Lakes
+W8V,MV,Metro Valley
+W8V,NP,Northern Panhandle
+W8V,NR,New River
+W8V,PH,Potomac Highlands
+W9,IL,Illinois
+W9,IN,Indiana
+W9,WI,Wisconsin
+XE1,CL,Colima
+XE1,CM,Ciudad de Mexico
+XE1,GJ,Guanajuato
+XE1,HD,Hidalgo
+XE1,JL,Jalisco
+XE1,MC,Michoacán
+XE1,ML,Michoacán Low
+XE1,MR,Morelos
+XE1,MX,Estado de México
+XE1,NY,Nayarit
+XE1,PB,Puebla
+XE1,QT,Querétaro
+XE1,TC,Tlaxcala
+XE1,VC,Veracruz
+XE2,AG,Aguascalientes
+XE2,BC,Baja California
+XE2,BS,Baja California Sur
+XE2,CC,Chihuahua Central
+XE2,CH,Coahuila North
+XE2,CN,Chihuahua North
+XE2,CS,Chihuahua South
+XE2,CZ,Coahuila South
+XE2,DN,Durango North
+XE2,DS,Durango South
+XE2,GI,Guadalupe Island
+XE2,NL,Nuevo Leon
+XE2,SC,Sonora Central
+XE2,SL,Sinaloa
+XE2,SN,Sonora North
+XE2,SP,San Luis Potosi
+XE2,SS,Sonora South
+XE2,TM,Tamaulipas
+XE2,ZC,Zacatecas
+XE3,CM,Campeche
+XE3,CP,Chiapas
+XE3,GL,Guerrero Low
+XE3,GR,Guerrero
+XE3,OL,Oaxaca Low
+XE3,OX,Oaxaca
+XE3,QR,Quintana Roo
+XE3,TB,Tabasco
+XF4,RV,Revillagigedo
+YBB,BA,Bali
+YBE,BB,Bangka Belitung
+YBE,KR,Kepulauan Riau
+YBJ,BT,Banten
+YBJ,JB,Jawa Barat
+YBJ,JI,Jawa Timur
+YBJ,JT,Jawa Tengah
+YBJ,YO,Yogyakarta
+YBS,AC,Aceh
+YBS,BE,Bengkulu
+YBS,JA,Jambi
+YBS,LA,Lampung
+YBS,RI,Riau
+YBS,SB,Sumatera Barat
+YBS,SS,Sumatera Selatan
+YBS,SU,Sumatera Utara
+YL,YL,Latvia
+YO,EC,Eastern Carpathians
+YO,MC,Middle Carpathians
+YO,MM,Macin Mountains
+YO,WC,Western Carpathians
+YU,CS,Centralna Srbija
+YU,IS,Istocna Srbija
+YU,JS,Južna Srbija
+YU,VO,Vojvodina
+YU,ZS,Zapadna Srbija
+Z3,EM,East Macedonia
+Z3,WM,West Macedonia
+ZB2,GI,Gibraltar
+ZD,AI,Ascension Island
+ZD,GI,Gough Island
+ZD,SH,Saint Helena
+ZD,TC,Tristan da Cunha
+ZL1,AK,Auckland
+ZL1,BP,Bay of Plenty
+ZL1,GI,Gisborne
+ZL1,HB,Hawke's Bay
+ZL1,MW,Manawatu-Wanganui
+ZL1,NL,Northland
+ZL1,TN,Taranaki
+ZL1,WK,Waikato
+ZL1,WL,Wellington
+ZL3,CB,Canterbury
+ZL3,FL,Fiordland
+ZL3,MB,Marlborough
+ZL3,OT,Otago
+ZL3,SL,Southland
+ZL3,TM,Tasman
+ZL3,WC,West Coast
+ZL7,CI,Chatham Islands
+ZL8,MI,Macauley Island
+ZL8,RI,Raoul Island
+ZL9,AD,Adams Island
+ZL9,AI,Auckland Island
+ZL9,AN,Antipodes Islands
+ZL9,CI,Campbell Islands
+ZL9,DI,Disappointment Island
+ZS,EC,Eastern Cape
+ZS,EL,Eastern Cape - Lowlands
+ZS,FS,Free State
+ZS,GP,Gauteng
+ZS,KN,KwaZulu-Natal
+ZS,LP,Limpopo
+ZS,MP,Mpumalanga
+ZS,NC,Northern Cape
+ZS,NW,North West
+ZS,WC,Western Cape
+ZS8,MI,Marion and Prince Edward Islands

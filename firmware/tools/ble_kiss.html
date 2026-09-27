@@ -1,0 +1,2064 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba de KISS por Bluetooth (BLE) — iGate EA2OY</title>
+<!--
+  OJO: aqui NO hay ninguna copia de Leaflet ni de nada externo. El unico recurso
+  de internet es el mapa (Leaflet + las teselas de OpenStreetMap), que se cargan
+  solo cuando se usa "Ver en el mapa" (ver cargarLeaflet() mas abajo). Todo lo
+  demas (CSS y JavaScript) va dentro de este fichero.
+-->
+<!--
+  ble_kiss.html — pagina de pruebas del TNC KISS por Bluetooth LE (servicio NUS).
+
+  Se sirve desde tools/ble_kiss_server.js y se abre en Chrome o Edge:
+      http://localhost:8099/
+  Abrirla con doble clic (file://) NO sirve: sin http:// el navegador desactiva
+  Web Bluetooth. Tampoco hay nada que descargar de internet: todo el CSS y todo
+  el JavaScript van aqui dentro.
+
+  Todo lo que se ve en pantalla se manda tambien al servidor local:
+      POST /log     lineas de registro
+      POST /frames  tramas AX.25 (recibidas y enviadas)
+  para que quede en logs/ble_kiss.log y logs/ble_frames.log. Si el servidor no
+  esta (o falla la peticion) solo se avisa con un discreto aviso amarillo: el
+  trabajo con el Bluetooth nunca se interrumpe por eso.
+
+  License: GPL-3.0
+-->
+<style>
+  :root{
+    --bg:#eef2f7; --card:#ffffff; --ink:#1b2430; --muted:#5c6b7a;
+    --line:#d3dbe5; --blue:#0b62d0; --blue2:#0a4fa8; --green:#177245;
+    --green2:#0f5c37; --red:#b3261e; --amber:#8a5a00; --amberbg:#fff6e0;
+    --code:#f4f7fb;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:18px; background:var(--bg); color:var(--ink);
+    font-family:"Segoe UI",Tahoma,Geneva,Verdana,system-ui,sans-serif;
+    font-size:15px; line-height:1.45;
+  }
+  .wrap{max-width:1080px; margin:0 auto}
+  h1{font-size:21px; margin:0 0 4px}
+  h2{font-size:15px; margin:0 0 10px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted)}
+  .lead{color:var(--muted); margin:0 0 14px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:16px; margin-bottom:14px; box-shadow:0 1px 2px rgba(20,30,45,.05)}
+  button{
+    font-family:inherit; font-size:15px; border-radius:8px; border:1px solid transparent;
+    padding:9px 16px; cursor:pointer;
+  }
+  button:disabled{opacity:.5; cursor:not-allowed}
+  #btnConnect{background:var(--green); color:#fff; font-weight:600}
+  #btnConnect:hover:not(:disabled){background:var(--green2)}
+  #btnSend{background:var(--blue); color:#fff; font-weight:600}
+  #btnSend:hover:not(:disabled){background:var(--blue2)}
+  .ghost{background:#fff; border-color:var(--line); color:var(--ink)}
+  .ghost:hover:not(:disabled){background:#f2f5f9}
+  .small{font-size:13px}
+  .muted{color:var(--muted)}
+  ul.help{margin:8px 0 0 0; padding-left:18px; color:var(--muted); font-size:13px}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  hr{border:0; border-top:1px solid var(--line); margin:14px 0}
+
+  .estado{display:inline-block; padding:4px 10px; border-radius:999px; font-size:13px;
+          font-weight:600; border:1px solid var(--line); background:#f2f5f9}
+  .estado.on{background:#e6f4ec; border-color:#a9d6bd; color:var(--green2)}
+  .estado.off{background:#f2f5f9}
+  .estado.err{background:#fdeceb; border-color:#f0b3ae; color:var(--red)}
+
+  .aviso{border-radius:8px; padding:10px 12px; margin-top:10px; font-size:14px; border:1px solid}
+  .aviso.err{background:#fdeceb; border-color:#f0b3ae; color:var(--red)}
+  .aviso.warn{background:var(--amberbg); border-color:#e8cd8e; color:var(--amber)}
+  .aviso.info{background:#eaf2fd; border-color:#b9d3f5; color:var(--blue2)}
+  .hidden{display:none}
+
+  table.datos{border-collapse:collapse; width:100%; margin-top:10px; font-size:13px}
+  table.datos th{text-align:left; color:var(--muted); font-weight:600; width:170px;
+                 vertical-align:top; padding:3px 8px 3px 0}
+  table.datos td{padding:3px 0; word-break:break-all}
+  code{font-family:Consolas,"Courier New",monospace; background:var(--code);
+       border:1px solid var(--line); border-radius:4px; padding:1px 5px}
+  textarea{
+    width:100%; min-height:58px; resize:vertical; font-family:Consolas,"Courier New",monospace;
+    font-size:14px; padding:9px 10px; border:1px solid var(--line); border-radius:8px;
+    background:#fff; color:var(--ink);
+  }
+  label.chk{font-size:13px; color:var(--muted); display:inline-flex; align-items:center; gap:6px}
+
+  #logPanel{
+    height:430px; overflow-y:auto; background:#0f1720; color:#dbe5f0; border-radius:8px;
+    padding:10px 12px; font-family:Consolas,"Courier New",monospace; font-size:13px;
+    border:1px solid #0b1119;
+  }
+  .fila{display:flex; gap:8px; padding:2px 0; border-bottom:1px solid rgba(255,255,255,.05)}
+  .fila .hora{color:#7f93a8; flex:0 0 76px}
+  .fila .txt{flex:1; white-space:pre-wrap; word-break:break-word}
+  .fila.rx .txt{color:#8ee6a8}
+  .fila.tx .txt{color:#8fc4ff}
+  .fila.err .txt{color:#ff9d94}
+  .fila.warn .txt{color:#ffd479}
+  .fila.raw .txt{color:#9fb0c2}
+  .fila.sys .txt{color:#c9d6e4}
+  .detalle{color:#8b9cb0; padding:0 0 4px 84px; white-space:pre-wrap; word-break:break-all}
+
+  /* --- mapa --- */
+  #mapaCaja{height:420px; border:1px solid var(--line); border-radius:8px; background:#e7edf4}
+  #mapaCaja .leaflet-container{background:#e7edf4; border-radius:8px}
+  .etiquetaPunto{font-weight:700; color:#7a3b00; background:rgba(255,255,255,.85);
+                 border:1px solid #e8cd8e; border-radius:4px; padding:0 3px}
+  .etiquetaActual{font-weight:700; color:#0a4fa8; background:rgba(255,255,255,.9);
+                  border:1px solid #b9d3f5; border-radius:4px; padding:0 3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Prueba de KISS por Bluetooth (BLE) y por cable USB</h1>
+  <p class="lead">
+    Esta pagina habla con el nodo por Bluetooth de baja energia (BLE), como si fuera un
+    cable: le manda lineas APRS y ensena lo que el nodo devuelve. Ademas, por el cable
+    USB puede pedirle el registro de viaje y guardarlo como GPX o KML, o pintarlo en un
+    mapa. Se abre en <b>Chrome</b> o <b>Edge</b>, desde la direccion que imprime el
+    servidor (<code>http://localhost:8099/</code>).
+  </p>
+
+  <!-- ===================== conexion ===================== -->
+  <div class="card">
+    <h2>1. Conectar con el nodo (Bluetooth)</h2>
+    <div class="row">
+      <button id="btnConnect">Conectar</button>
+      <button id="btnReconnect" class="ghost" disabled>Reconectar (sin lista)</button>
+      <button id="btnDisconnect" class="ghost" disabled>Desconectar</button>
+      <button id="btnOlvidar" class="ghost small" disabled>Olvidar y buscar otra vez</button>
+      <span id="estado" class="estado off">Sin conectar</span>
+    </div>
+    <p class="small muted" style="margin:8px 0 0">
+      Al pulsar <b>Conectar</b> el navegador abre una lista: elige ahi el nodo.
+      Tienes que pulsarlo tu: el navegador no permite hacerlo solo. A partir de ahi
+      ese aparato queda autorizado, y en las siguientes cargas de la pagina
+      <b>Reconectar (sin lista)</b> se conecta a el sin abrir ninguna lista y sin
+      ningun clic de mas.
+    </p>
+    <table class="datos hidden" id="tablaInfo">
+      <tr><th>Servicio NUS</th><td id="infoServicio">—</td></tr>
+      <tr><th>Caracteristica RX (escribir)</th><td id="infoRx">—</td></tr>
+      <tr><th>Caracteristica TX (notificar)</th><td id="infoTx">—</td></tr>
+      <tr><th>Ultimo aviso</th><td id="infoNota">—</td></tr>
+    </table>
+    <div id="aviso" class="aviso err hidden"></div>
+  </div>
+
+  <!-- ===================== envio ===================== -->
+  <div class="card">
+    <h2>2. Enviar una linea APRS al nodo</h2>
+    <textarea id="texto" spellcheck="false"
+      placeholder="EA2OY-7>APZFKT,WIDE1-1:>prueba desde el navegador"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button id="btnSend" disabled>Enviar</button>
+      <button id="btnEjemplo" class="ghost small">Poner un ejemplo</button>
+      <button id="btnLimpiar" class="ghost small">Limpiar la pantalla</button>
+    </div>
+    <ul class="help">
+      <li>Formato: <code>ORIGEN&gt;DESTINO,REPETIDOR:texto</code></li>
+      <li>Ejemplo: <code>EA2OY-7&gt;APZFKT,WIDE1-1:&gt;prueba</code></li>
+      <li>El indicativo admite como mucho 6 letras o numeros, y el SSID va de 0 a 15.</li>
+      <li>Se puede escribir mas de una linea: se envian una detras de otra, con una pausa breve.</li>
+    </ul>
+  </div>
+
+  <!-- ===================== registro de viaje (USB) ===================== -->
+  <div class="card">
+    <h2>3. El registro de viaje del nodo (por cable USB)</h2>
+    <p class="small muted" style="margin:0 0 10px">
+      Estos botones van por el <b>cable USB</b>, no por Bluetooth: funcionan aunque el
+      Bluetooth este apagado o sin conectar. Al pulsar uno, el navegador pide elegir el
+      puerto serie del nodo (una vez; luego se acuerda). A partir de ahi se le manda al
+      nodo la orden <code>log dump</code>, se leen las lineas hasta la que dice
+      <code>LOG END</code>, y el fichero se monta aqui mismo: no hace falta internet ni
+      ningun programa.
+    </p>
+    <div class="row">
+      <button id="btnGpx">Descargar GPX</button>
+      <button id="btnKml" class="ghost">Descargar KML</button>
+      <button id="btnMapa" class="ghost">Ver en el mapa</button>
+      <button id="btnCerrarPuerto" class="ghost small" disabled>Cerrar el puerto serie</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <label class="small muted" for="indicativo">Indicativo del nodo (para saber cual es su posicion en el mapa):</label>
+      <input type="text" id="indicativo" value="EA2OY-7" spellcheck="false"
+             style="font-family:inherit; font-size:14px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; width:120px">
+    </div>
+    <div id="avisoViaje" class="aviso info hidden"></div>
+    <p class="small muted" style="margin:8px 0 0">
+      El fichero se llama <code>log_AAAAMMDD_HHMMSS.gpx</code> (o <code>.kml</code>) y se
+      guarda donde diga el navegador. Es el mismo formato que genera
+      <code>tools/log2gpx.js</code>, asi que vale para Wikiloc, Garmin, Google Earth, etc.
+    </p>
+  </div>
+
+  <!-- ===================== mapa ===================== -->
+  <div class="card">
+    <h2>4. El viaje en el mapa</h2>
+    <div class="row" style="margin-bottom:10px">
+      <span id="mapaEstado" class="small muted">El mapa solo se descarga de internet cuando se usa.</span>
+      <button id="btnCentrar" class="ghost small" disabled>Centrar en la ruta</button>
+    </div>
+    <div id="mapaCaja" class="hidden"></div>
+    <div id="mapaAviso" class="aviso info">
+      Aqui saldra el mapa. Hace falta internet: la libreria del mapa (Leaflet) y las
+      teselas de OpenStreetMap se descargan de la red la primera vez que pulses
+      <b>Ver en el mapa</b>. Si no hay internet, el mapa no puede salir; las descargas de
+      GPX y KML siguen funcionando igual, porque esas no necesitan red.
+    </div>
+  </div>
+
+  <!-- ===================== registro ===================== -->
+  <div class="card">
+    <h2>5. Lo que va pasando</h2>
+    <div id="logPanel"></div>
+    <p class="small muted" style="margin:10px 0 0">
+      Aqui sale todo, con su hora. Lo mismo se guarda en el ordenador, en
+      <code>logs/ble_kiss.log</code> (el relato) y <code>logs/ble_frames.log</code>
+      (cada trama).
+    </p>
+    <div id="avisoServidor" class="aviso warn hidden"></div>
+  </div>
+
+</div>
+
+<script>
+"use strict";
+/* =========================================================================
+ *  Prueba de KISS por Bluetooth LE (servicio NUS) con Web Bluetooth.
+ *
+ *  El trabajo esta repartido asi:
+ *    - el navegador conecta y recibe/entrega bytes sueltos;
+ *    - aqui dentro se monta el KISS (0xC0 / 0xDB) hasta tener tramas completas;
+ *    - y luego se traduce el AX.25 a la linea legible SRC>DST,RUTA:texto.
+ *
+ *  Ademas hay dos cosas que NO usan Bluetooth:
+ *    - el registro de viaje del nodo, que se pide por el cable USB (WebSerial)
+ *      y se convierte aqui en GPX o KML (mismo formato que tools/log2gpx.js);
+ *    - el mapa (Leaflet + OpenStreetMap), que es lo unico que se baja de
+ *      internet y solo cuando se pulsa "Ver en el mapa".
+ * ========================================================================= */
+
+/* ============================ 1. constantes ============================== */
+
+const NUS_SERVICIO = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+const NUS_RX = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";   // el navegador escribe aqui
+const NUS_TX = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";   // el nodo notifica por aqui
+const SERVICIO_BATERIA = "battery_service";
+
+const FEND = 0xc0;          // marca de principio y fin de trama KISS
+const FESC = 0xdb;          // "lo que viene detras es un byte especial"
+const TFEND = 0xdc;         // 0xDB 0xDC significa un 0xC0 de verdad
+const TFESC = 0xdd;         // 0xDB 0xDD significa un 0xDB de verdad
+const CMD_DATOS = 0x00;     // puerto 0 (nibble alto) y comando 0 (nibble bajo)
+const CTRL_UI = 0x03;       // AX.25: trama UI, sin conexion
+const PID_SIN_CAPA3 = 0xf0; // AX.25: sin protocolo de nivel 3
+const MAX_AX25 = 340;       // tope de una trama AX.25, igual que en el firmware
+const TAMANO_TROZO = 20;    // bytes por escritura BLE (como pide el firmware)
+const PAUSA_ENTRE_TROZOS = 25;  // ms; le da tiempo al nodo entre trozos
+const TOPE_ENTRADA = 256;   // caracteres maximos del texto de una linea APRS
+
+// --- registro de viaje por USB (WebSerial) ---
+const ORDEN_DUMP = "log dump";   // lo que espera el nodo (src/cli.cpp, verbo LOG)
+const BAUDIOS = 115200;          // igual que tools/log_dump.ps1
+const FIN_DUMP = "LOG END";      // ultima linea del volcado (src/flog.cpp)
+const PREFIJO_DUMP = "LOG ";     // cada linea del volcado empieza asi
+const TOPE_LINEAS = 60000;       // tope de seguridad por si el nodo no termina
+const ESPERA_MAXIMA_MS = 90000;  // si en este tiempo no llega el final, se corta
+const ESPERA_ENTRE_LINEAS_MS = 8000;  // sin nada nuevo tanto rato: se da por acabado
+
+// Las lineas del registro que traen una posicion. Son EXACTAMENTE los mismos
+// patrones que usa tools/log2gpx.js (si se toca alli, hay que tocar aqui).
+const PATRON_TRK = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2}) TX TRK (-?\d+\.\d+),(-?\d+\.\d+) (-?\d+(?:\.\d+)?)km\/h (-?\d+(?:\.\d+)?)deg (-?\d+(?:\.\d+)?)m/;
+const PATRON_TRK_SIN_FECHA = /^(\d{2}):(\d{2}):(\d{2}) TX TRK (-?\d+\.\d+),(-?\d+\.\d+) (-?\d+(?:\.\d+)?)km\/h (-?\d+(?:\.\d+)?)deg (-?\d+(?:\.\d+)?)m/;
+// La hora se escribe de TRES formas (ver el registro real del 2026-09-13):
+// fecha completa, hora suelta, o tiempo encendido ("1s") si el GPS aun no sabe
+// el dia. Y el GPS puede dar una fecha imposible ("2000-00-00"). Igual que en el
+// configurador: sin fecha buena el punto va SIN hora, no se inventa.
+const PATRON_TRK_CUERPO = /^TX TRK (-?\d+\.\d+),(-?\d+\.\d+) (-?\d+(?:\.\d+)?)km\/h (-?\d+(?:\.\d+)?)deg (-?\d+(?:\.\d+)?)m/;
+const PATRON_PREFIJO = /^(?:(\d{4}-\d{2}-\d{2})|(\d{2}:\d{2}:\d{2})|\d+s)\s+/;
+
+// Posicion APRS normal: "!" o "=" o "@" + 8 caracteres de latitud + 8 de longitud.
+const RE_POSICION = /^([!=\/@])(\d{2})([0-9 ]{2}\.[0-9 ]{2})([NS])(.)(\d{3})([0-9 ]{2}\.[0-9 ]{2})([EW])/;
+// Posicion APRS comprimida: "!" o "=" o "@" + 4 + 4 caracteres en base 91.
+const RE_COMP = /^([!=\/@])([\/\\A-Za-z0-9])([!-{]{4})([!-{]{4})(.)/;
+
+// --- mapa (lo unico que se baja de internet, y solo al usarlo) ---
+const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+const LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+const LEAFLET_CSS_INTEGRIDAD = "sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=";
+const LEAFLET_JS_INTEGRIDAD = "sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=";
+const TESELAS = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const ATRIBUCION = "&copy; colaboradores de OpenStreetMap";
+// Las marcas del mapa (salida, llegada, motivos y "ahora") son circulos que
+// dibuja la propia libreria: asi no hace falta bajarse ni una imagen mas.
+const LEYENDA_MOTIVOS = "F = primer fix; R = ritmo; C = curva; D = distancia; " +
+                        "M = a mano; P = parado";
+const TOPE_MARCAS_MAPA = 400;    // si hay mas motivos, se dibujan solo los primeros
+
+// --- claves de localStorage (para no volver a pedir permisos) ---
+const CLAVE_DISPOSITIVO = "fk_ble_dispositivo";
+const CLAVE_INDICATIVO = "fk_ble_indicativo";
+
+/* ====================== 2. pantalla y registro =========================== */
+
+const $ = (id) => document.getElementById(id);
+const panel = $("logPanel");
+const cajaAviso = $("aviso");
+const cajaAvisoServidor = $("avisoServidor");
+const elEstado = $("estado");
+const btnConectar = $("btnConnect");
+const btnReconectar = $("btnReconnect");
+const btnOlvidar = $("btnOlvidar");
+const btnDesconectar = $("btnDisconnect");
+const btnEnviar = $("btnSend");
+const cajaTexto = $("texto");
+const cajaAvisoViaje = $("avisoViaje");
+const cajaMapa = $("mapaCaja");
+const cajaAvisoMapa = $("mapaAviso");
+const btnGpx = $("btnGpx");
+const btnKml = $("btnKml");
+const btnMapa = $("btnMapa");
+const btnCerrarPuerto = $("btnCerrarPuerto");
+const btnCentrar = $("btnCentrar");
+const campoIndicativo = $("indicativo");
+const elMapaEstado = $("mapaEstado");
+
+// Memoria del navegador para no volver a pedir permisos. Si el navegador la tiene
+// prohibida (modo privado, por ejemplo) la pagina sigue funcionando igual: solo se
+// pierde la memoria, y se avisa en el registro.
+function guardarDato(clave, valor) {
+  try {
+    localStorage.setItem(clave, String(valor));
+    return true;
+  } catch (e) {
+    log("Aviso: el navegador no me deja guardar en su memoria (" + ((e && e.message) || e) +
+        "). Todo funciona, pero habra que elegir el aparato otra vez.", "warn");
+    return false;
+  }
+}
+
+function leerDato(clave) {
+  try {
+    return localStorage.getItem(clave);
+  } catch (e) {
+    return null;
+  }
+}
+
+function borrarDato(clave) {
+  try {
+    localStorage.removeItem(clave);
+  } catch (e) { /* da igual */ }
+}
+
+let lineasPintadas = 0;
+
+function escaparHtml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function horaCorta() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+}
+
+// Los bytes se pintan en hexadecimal (para pegarlos en un informe) y, si son
+// imprimibles, tambien como texto.
+function bytesAHex(bytes) {
+  const a = Array.from(bytes || []);
+  if (!a.length) return "(ninguno)";
+  return a.map((b) => b.toString(16).toUpperCase().padStart(2, "0")).join(" ");
+}
+
+function esImprimible(b) {
+  return b === 0x20 || (b >= 0x21 && b <= 0x7e);
+}
+
+function bytesATexto(bytes) {
+  let s = "";
+  for (const b of Array.from(bytes || [])) s += esImprimible(b) ? String.fromCharCode(b) : ".";
+  return s;
+}
+
+// Texto de una trama AX.25: casi siempre ASCII, pero si viene algun byte raro
+// NO se tira la trama: el byte se ensena como <C0> y el texto sigue. Las lineas
+// APRS con acentos se mandan en Latin-1, asi que esos bytes (0x80-0xFF) se
+// conservan tal cual.
+function textoInfo(bytes) {
+  const a = Array.from(bytes || []);
+  let s = "";
+  for (const b of a) {
+    if (esImprimible(b)) s += String.fromCharCode(b);
+    else if (b === 0x09) s += " ";
+    else if (b === 0x0d || b === 0x0a) s += " / ";
+    else if (b >= 0x80) s += String.fromCharCode(b);
+    else s += "<" + b.toString(16).toUpperCase().padStart(2, "0") + ">";
+  }
+  return s;
+}
+
+function pintar(hora, texto, clase, detalle) {
+  const fila = document.createElement("div");
+  fila.className = "fila " + (clase || "sys");
+  fila.innerHTML = '<span class="hora">' + escaparHtml(hora) + '</span>' +
+                   '<span class="txt">' + escaparHtml(texto) + '</span>';
+  panel.appendChild(fila);
+  if (detalle) {
+    const d = document.createElement("div");
+    d.className = "detalle";
+    d.textContent = detalle;
+    panel.appendChild(d);
+    lineasPintadas++;
+  }
+  lineasPintadas++;
+  // El panel no crece sin freno: si hay mucho trafico se tiran las filas viejas
+  // (el fichero del servidor se queda con todo).
+  while (lineasPintadas > 1500 && panel.firstChild) {
+    panel.removeChild(panel.firstChild);
+    lineasPintadas--;
+  }
+  panel.scrollTop = panel.scrollHeight;
+}
+
+function mostrarAviso(texto, tipo) {
+  cajaAviso.textContent = texto;
+  cajaAviso.className = "aviso " + (tipo || "info");
+}
+
+function ocultarAviso() {
+  cajaAviso.className = "aviso hidden";
+  cajaAviso.textContent = "";
+}
+
+function ponerEstado(texto, tipo) {
+  elEstado.textContent = texto;
+  elEstado.className = "estado " + (tipo || "off");
+}
+
+/* ============ 3. enviar el registro al servidor local (/log) ============= */
+/* Va aparte y sin esperar respuesta: si el servidor no esta, solo se avisa.  */
+
+const pendientes = [];
+let enviando = false;
+let fallos = 0;
+let avisoServidorPuesto = false;
+
+function avisarDeServidor(texto) {
+  cajaAvisoServidor.textContent = texto;
+  cajaAvisoServidor.className = "aviso warn";
+}
+
+function encolar(ruta, carga) {
+  if (pendientes.length > 2000) pendientes.shift();  // no crecer sin control
+  pendientes.push({ ruta: ruta, carga: carga });
+  vaciar();
+}
+
+async function vaciar() {
+  if (enviando) return;
+  enviando = true;
+  while (pendientes.length) {
+    const t = pendientes.shift();
+    try {
+      const r = await fetch(t.ruta, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(t.carga)
+      });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      if (fallos && !avisoServidorPuesto) {
+        avisarDeServidor("El servidor local vuelve a responder: el registro se esta guardando otra vez.");
+        avisoServidorPuesto = true;
+      }
+    } catch (e) {
+      fallos++;
+      if (!avisoServidorPuesto) {
+        avisoServidorPuesto = true;
+        avisarDeServidor("No consigo guardar el registro en el servidor (" + e.message +
+          "). El Bluetooth sigue funcionando; si quieres el registro en fichero, " +
+          "comprueba que ble_kiss_server.js sigue arrancado y recarga la pagina.");
+      }
+    }
+  }
+  enviando = false;
+}
+
+function log(texto, clase, detalle) {
+  const hora = horaCorta();
+  pintar(hora, texto, clase, detalle);
+  encolar("/log", {
+    ts: hora,
+    level: clase || "sys",
+    text: texto,
+    detail: detalle || ""
+  });
+}
+
+function mandarTrama(direccion, resumen, hex, rssi, extra) {
+  const hora = horaCorta();
+  const etiqueta = direccion === "TX" ? "TX \u2192" : "RX \u2190";
+  pintar(hora, etiqueta + " " + resumen, direccion === "TX" ? "tx" : "rx", "hex: " + hex);
+  const carga = {
+    ts: hora,
+    dir: direccion,
+    summary: resumen,
+    text: resumen,
+    raw: hex,
+    rssi: (rssi === undefined || rssi === null) ? null : rssi
+  };
+  if (extra) {
+    for (const k of Object.keys(extra)) carga[k] = extra[k];
+  }
+  encolar("/frames", carga);
+}
+
+/* ===================== 4. AX.25: leer y escribir ========================= */
+
+// Una direccion AX.25 son 7 bytes: 6 letras desplazadas una posicion a la
+// izquierda y rellenas con espacios, y un byte final que lleva el SSID.
+// Se admite cualquier caracter imprimible (los indicativos van en mayusculas,
+// pero no queremos inventarnos un error por una minuscula).
+function leerDireccion(buf, pos) {
+  if (pos + 7 > buf.length) return { error: "se acabo la trama a mitad de una direccion" };
+  let indicativo = "";
+  for (let i = 0; i < 6; i++) {
+    const bruto = buf[pos + i];
+    const c = bruto >> 1;
+    if (c === 0x20) continue;                     // relleno
+    if (c < 0x21 || c > 0x7e) {
+      return { error: "byte 0x" + bruto.toString(16).toUpperCase().padStart(2, "0") +
+                      " en la posicion " + (pos + i) + ": ahi no hay letra ni numero" };
+    }
+    indicativo += String.fromCharCode(c);
+  }
+  if (!indicativo) return { error: "indicativo vacio (todo espacios)" };
+  const ssid = (buf[pos + 6] >> 1) & 0x0f;
+  const ultima = (buf[pos + 6] & 0x01) !== 0;      // bit de extension
+  const repetida = (buf[pos + 6] & 0x80) !== 0;    // bit H: ya la repitio un digi
+  return {
+    texto: ssid ? indicativo + "-" + ssid : indicativo,
+    ultima: ultima,
+    repetida: repetida
+  };
+}
+
+// Trama AX.25 binaria -> "SRC>DST,RUTA:info".
+// Devuelve siempre algo: si algo falta, lo dice en vez de callarse la trama.
+function ax25ALinea(buf) {
+  const base = "trama de " + buf.length + " bytes";
+  if (buf.length < 15) {
+    return {
+      ok: false,
+      texto: "trama AX.25 incompleta (" + base + ", hacen falta 15 como minimo)",
+      hex: bytesAHex(buf)
+    };
+  }
+  const destino = leerDireccion(buf, 0);
+  if (destino.error) return { ok: false, texto: "destino ilegible: " + destino.error + " (" + base + ")", hex: bytesAHex(buf) };
+  const origen = leerDireccion(buf, 7);
+  if (origen.error) return { ok: false, texto: "origen ilegible: " + origen.error + " (" + base + ")", hex: bytesAHex(buf) };
+
+  let pos = 14;
+  let ultima = origen.ultima;
+  const ruta = [];
+  while (!ultima) {
+    if (pos + 7 > buf.length) {
+      return { ok: false, texto: "la ruta se corta a mitad (" + base + ")", hex: bytesAHex(buf) };
+    }
+    const d = leerDireccion(buf, pos);
+    if (d.error) return { ok: false, texto: "repetidor ilegible: " + d.error + " (" + base + ")", hex: bytesAHex(buf) };
+    ruta.push(d.texto + (d.repetida ? "*" : ""));
+    ultima = d.ultima;
+    pos += 7;
+  }
+
+  const cabecera = origen.texto + ">" + destino.texto + (ruta.length ? "," + ruta.join(",") : "");
+  const quedan = buf.length - pos;
+  if (quedan <= 0) {
+    return {
+      ok: false,
+      texto: cabecera + ": (sin bytes despues de las direcciones: falta el control 0x03 y el PID 0xF0)",
+      hex: bytesAHex(buf)
+    };
+  }
+  if (quedan === 1) {
+    return {
+      ok: false,
+      texto: cabecera + ": (solo " + quedan + " byte despues de las direcciones: control 0x" +
+             buf[pos].toString(16).toUpperCase().padStart(2, "0") + ", falta el PID 0xF0)",
+      hex: bytesAHex(buf)
+    };
+  }
+
+  const control = buf[pos];
+  const pid = buf[pos + 1];
+  const info = buf.slice(pos + 2);
+  // "ok" significa "trama correcta y completa". Los bytes raros del texto NO
+  // cuentan como problema: se ensenan como <XX> y la linea sigue siendo buena.
+  const problemas = [];
+  if (control !== CTRL_UI) {
+    problemas.push("el control no es 0x03 sino 0x" + control.toString(16).toUpperCase().padStart(2, "0"));
+  }
+  if (pid !== PID_SIN_CAPA3) {
+    problemas.push("el PID no es 0xF0 sino 0x" + pid.toString(16).toUpperCase().padStart(2, "0"));
+  }
+
+  let linea = cabecera + ":" + textoInfo(info);
+  const notas = problemas.slice();
+  if (info.length === 0) notas.push("la trama no traia texto");
+  if (notas.length) linea += "   [" + notas.join("; ") + "]";
+  return { ok: problemas.length === 0, texto: linea, hex: bytesAHex(buf) };
+}
+
+const LARGO_MAX = 6;
+
+// "EA2OY-7" o "WIDE1-1*" -> {texto:"EA2OY-7", indicativo:"EA2OY", ssid:7,
+// repetida:false}, o {error:"..."} con el motivo en castellano. El nombre del
+// campo es "texto" porque es lo que se pinta en la linea legible.
+function leerIndicativo(texto) {
+  const original = String(texto === undefined || texto === null ? "" : texto).trim();
+  let t = original;
+  if (!t) return { error: "falta el indicativo" };
+  let repetida = false;
+  if (t.endsWith("*")) {
+    repetida = true;
+    t = t.slice(0, -1).trim();
+  }
+  let indicativo = t;
+  let ssid = 0;
+  const guion = t.lastIndexOf("-");
+  if (guion > 0) {
+    indicativo = t.slice(0, guion);
+    const s = t.slice(guion + 1);
+    if (!/^\d+$/.test(s)) return { error: "el SSID de \"" + original + "\" no es un numero" };
+    ssid = Number(s);
+    if (ssid > 15) return { error: "el SSID de \"" + original + "\" es " + ssid + " y el maximo es 15" };
+  }
+  if (!indicativo) return { error: "indicativo vacio en \"" + original + "\"" };
+  if (indicativo.length > LARGO_MAX) {
+    return { error: "\"" + indicativo + "\" tiene " + indicativo.length +
+                    " caracteres y el maximo es " + LARGO_MAX };
+  }
+  if (!/^[A-Za-z0-9]+$/.test(indicativo)) {
+    return { error: "\"" + indicativo + "\" lleva caracteres que no valen (solo letras y numeros)" };
+  }
+  indicativo = indicativo.toUpperCase();
+  return {
+    texto: ssid ? indicativo + "-" + ssid : indicativo,
+    indicativo: indicativo,
+    ssid: ssid,
+    repetida: repetida
+  };
+}
+
+// Los 7 bytes de una direccion. "ultima" pone el bit de extension, que marca
+// donde acaba la lista de direcciones.
+function escribirDireccion(salida, dir, ultima) {
+  for (let i = 0; i < 6; i++) {
+    const c = i < dir.indicativo.length ? dir.indicativo.charCodeAt(i) : 0x20;
+    salida.push((c << 1) & 0xff);
+  }
+  let b = 0x60 | ((dir.ssid & 0x0f) << 1) | (ultima ? 1 : 0);
+  if (dir.repetida) b |= 0x80;
+  salida.push(b);
+}
+
+// "EA2OY-7>APZFKT,WIDE1-1:>prueba" -> bytes AX.25, o {error:"..."}.
+function lineaAAx25(linea) {
+  const dosPuntos = linea.indexOf(":");
+  if (dosPuntos < 0) return { error: "falta \":\" antes del texto. Ejemplo: EA2OY-7>APZFKT:>hola" };
+  const cabecera = linea.slice(0, dosPuntos);
+  const info = linea.slice(dosPuntos + 1);
+  const mayor = cabecera.indexOf(">");
+  if (mayor <= 0) return { error: "falta \">\" entre el origen y el destino" };
+
+  const origen = leerIndicativo(cabecera.slice(0, mayor));
+  if (origen.error) return { error: "origen: " + origen.error };
+  const resto = cabecera.slice(mayor + 1);
+  const coma = resto.indexOf(",");
+  const textoDestino = coma < 0 ? resto : resto.slice(0, coma);
+  const textoRuta = coma < 0 ? "" : resto.slice(coma + 1);
+
+  const destino = leerIndicativo(textoDestino);
+  if (destino.error) return { error: "destino: " + destino.error };
+
+  const ruta = [];
+  for (const trozo of textoRuta.split(",")) {
+    if (!trozo.trim()) continue;
+    const d = leerIndicativo(trozo);
+    if (d.error) return { error: "repetidor: " + d.error };
+    ruta.push(d);
+  }
+  if (ruta.length > 8) return { error: "la ruta lleva mas de 8 repetidores" };
+
+  if (info.length > TOPE_ENTRADA) {
+    return { error: "el texto lleva " + info.length + " caracteres y el maximo es " + TOPE_ENTRADA };
+  }
+  for (let i = 0; i < info.length; i++) {
+    const c = info.charCodeAt(i);
+    if (c < 0x20 || c > 0xff) {
+      return { error: "el texto lleva un caracter que no se puede mandar por radio (posicion " + (i + 1) + ")" };
+    }
+  }
+
+  const salida = [];
+  // En AX.25 la lista de direcciones empieza por el DESTINO y sigue el origen,
+  // y los repetidores van al final. El bit de extension solo lo lleva la ultima.
+  escribirDireccion(salida, destino, false);
+  escribirDireccion(salida, origen, ruta.length === 0);
+  ruta.forEach((d, i) => escribirDireccion(salida, d, i === ruta.length - 1));
+  salida.push(CTRL_UI, PID_SIN_CAPA3);
+  for (let i = 0; i < info.length; i++) salida.push(info.charCodeAt(i) & 0xff);
+
+  const resumen = origen.texto + ">" + destino.texto +
+                  (ruta.length ? "," + ruta.map((d) => d.texto + (d.repetida ? "*" : "")).join(",") : "") +
+                  ":" + info;
+  const aviso = ruta.length ? "" :
+    "la linea no lleva repetidores: se manda sin ruta (añade por ejemplo ,WIDE1-1 si quieres que la repitan)";
+  return { bytes: new Uint8Array(salida), resumen: resumen, aviso: aviso };
+}
+
+/* ========================= 5. KISS: 0xC0 y 0xDB ========================== */
+
+function kissEnvolver(bytes, comando) {
+  const salida = [FEND, (comando === undefined ? CMD_DATOS : comando)];
+  for (const b of Array.from(bytes)) {
+    if (b === FEND) salida.push(FESC, TFEND);
+    else if (b === FESC) salida.push(FESC, TFESC);
+    else salida.push(b);
+  }
+  salida.push(FEND);
+  return new Uint8Array(salida);
+}
+
+// El receptor va byte a byte porque los bytes llegan como quieren: una trama
+// entera de golpe, media trama, o dos tramas pegadas. Este objeto aguanta las
+// tres cosas sin perder nada.
+class ReceptorKiss {
+  constructor(alTenerTrama, alAvisar) {
+    this.alTenerTrama = alTenerTrama;
+    this.alAvisar = alAvisar || function () {};
+    this.reiniciar();
+  }
+  reiniciar() {
+    this.dentro = false;     // estamos entre dos 0xC0
+    this.escape = false;     // el byte anterior era 0xDB
+    this.datos = [];         // bytes ya desescapados, con el byte de comando delante
+    this.pasado = false;     // la trama se paso de larga
+    this.descartados = 0;    // bytes tirados por pasarse de larga
+    this.tramaLlena = false; // el 0xC0 anterior cerro una trama de verdad
+  }
+  feed(byte) {
+    if (byte === FEND) {
+      const llena = this.tramaLlena;   // el 0xC0 anterior cerro una trama de verdad
+      if (this.dentro) this.cerrarTrama();
+      // Dos 0xC0 seguidos entre dos tramas son lo normal (el de cierre de una es
+      // el de apertura de la siguiente): eso NO es una trama vacia, asi que no
+      // se avisa. Solo se avisa cuando de verdad no habia nada entre los dos.
+      const vacia = this.dentro && !this.datos.length && !this.pasado && !llena;
+      this.reiniciar();
+      if (vacia) this.alAvisar("Dos 0xC0 seguidos sin nada en medio: no hay trama que leer.");
+      this.dentro = true;
+      return;
+    }
+    if (!this.dentro) return;                 // bytes de relleno entre tramas
+    if (this.escape) {
+      this.escape = false;
+      if (byte === TFEND) byte = FEND;
+      else if (byte === TFESC) byte = FESC;
+      // Si detras del 0xDB no venia ni 0xDC ni 0xDD, el byte se deja tal cual:
+      // preferimos ensenar lo que llego antes que inventarnoslo.
+    } else if (byte === FESC) {
+      this.escape = true;
+      return;
+    }
+    if (this.datos.length >= MAX_AX25 + 1) {
+      this.pasado = true;
+      this.descartados++;
+      return;
+    }
+    this.datos.push(byte);
+  }
+  cerrarTrama() {
+    if (this.pasado) {
+      this.alAvisar("Trama KISS demasiado larga: descartada (" + this.descartados + " bytes de mas).");
+      return;
+    }
+    // Los bytes de relleno entre tramas no llegan aqui: los descarta feed().
+    if (!this.datos.length) return;
+    const comando = this.datos[0];
+    const cuerpo = this.datos.slice(1);
+    const puerto = (comando >> 4) & 0x0f;
+    const orden = comando & 0x0f;
+    if (puerto !== 0 || orden !== 0) {
+      this.alAvisar("Trama KISS con puerto " + puerto + " y comando " + orden +
+                    " (0x" + comando.toString(16).toUpperCase().padStart(2, "0") +
+                    "): no es una trama de datos, se ignora.");
+      return;
+    }
+    if (!cuerpo.length) {
+      this.alAvisar("Trama KISS de datos sin nada dentro: ignorada.");
+      return;
+    }
+    this.tramaLlena = true;   // el siguiente 0xC0 es el de cierre, no una trama vacia
+    this.alTenerTrama(new Uint8Array(cuerpo));
+  }
+}
+
+/* ===================== 6. Web Bluetooth y conexion ======================= */
+
+let dispositivo = null;
+let servidorGatt = null;
+let caracteristicaRx = null;   // se escribe aqui (nodo -> radio)
+let caracteristicaTx = null;   // el nodo notifica por aqui
+let receptor = null;
+let notificaciones = 0;
+let tramas = 0;
+let dispositivoConocido = null;   // aparato ya autorizado, para reconectar sin lista
+
+function notaInfo(texto) {
+  $("infoNota").textContent = texto;
+}
+
+async function conectar() {
+  ocultarAviso();
+  if (!navigator.bluetooth) {
+    mostrarAviso("Este navegador no sabe hablar por Bluetooth. Abre esta misma direccion " +
+                 "con Chrome o con Edge (en Windows, Chrome o Edge actualizados).", "err");
+    log("ERROR: este navegador no tiene Web Bluetooth (navigator.bluetooth no existe).", "err");
+    return;
+  }
+  btnConectar.disabled = true;
+  btnReconectar.disabled = true;
+  ponerEstado("Buscando...", "off");
+  log("CAMINO A (con clic): pido al navegador que busque el nodo. Hay que elegirlo en la lista que sale en pantalla.", "sys");
+
+  let device;
+  try {
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [NUS_SERVICIO] }],
+      // Si el nodo no anuncia el servicio NUS al aire, se puede elegir por nombre:
+      optionalServices: [NUS_SERVICIO, SERVICIO_BATERIA]
+    });
+  } catch (e) {
+    btnConectar.disabled = false;
+    btnReconectar.disabled = !dispositivoConocido;
+    ponerEstado("Sin conectar", "off");
+    if (e && e.name === "NotFoundError") {
+      mostrarAviso("No has elegido ningun aparato (o has cerrado la lista). Vuelve a pulsar " +
+                   "Conectar y elige el nodo.", "warn");
+      log("Has cerrado la lista sin elegir aparato.", "warn");
+    } else if (e && e.name === "SecurityError") {
+      mostrarAviso("El navegador ha bloqueado el Bluetooth. Tiene que ser una pagina de " +
+                   "http://localhost:8099/ abierta en Chrome o Edge, con el Bluetooth del " +
+                   "ordenador encendido.", "err");
+      log("ERROR de seguridad de Web Bluetooth: " + (e.message || e.name), "err");
+    } else {
+      mostrarAviso("No he podido empezar la busqueda de Bluetooth: " +
+                   ((e && e.message) || e) + ".", "err");
+      log("ERROR al buscar el aparato: " + ((e && e.message) || e), "err");
+    }
+    return;
+  }
+
+  // El aparato elegido a mano se apunta para no tener que abrir mas la lista.
+  if (device.id) {
+    if (device.id === leerDato(CLAVE_DISPOSITIVO)) {
+      log("El aparato elegido es el mismo que ya tenia apuntado (id " + device.id + ").", "sys");
+    } else if (guardarDato(CLAVE_DISPOSITIVO, device.id)) {
+      log("Aparato apuntado para reconectar sin lista (id " + device.id + ").", "sys");
+    }
+  } else {
+    log("Aviso: el navegador no me da un identificador del aparato, asi que no podre " +
+        "reconectar sin lista. Habra que pulsar Conectar (con clic) cada vez.", "warn");
+  }
+  await usarDispositivo(device, "CAMINO A (con clic)");
+}
+
+// Aqui ya esta decidido con QUE aparato se habla. El camino solo cambia lo que se
+// escribe en el registro, para que se pueda saber si hizo falta el clic humano.
+async function usarDispositivo(device, camino) {
+  if (!device || !device.gatt) {
+    mostrarAviso("Ese aparato no sabe conectar (no tiene GATT). Prueba con Conectar y elige el nodo.", "err");
+    log("ERROR al conectar: el aparato no tiene GATT.", "err");
+    return;
+  }
+  dispositivo = device;
+  dispositivoConocido = device;
+  if (device.name) log(camino + ": aparato " + device.name + " (id " + (device.id || "sin id") + ").", "sys");
+  device.addEventListener("gattserverdisconnected", alDesconectar);
+  ponerEstado("Conectando...", "off");
+
+  // Servicio NUS. Si el nodo esta apagado o fuera de alcance, gatt.connect() se
+  // queda esperando para siempre: se le pone tope para poder decirlo en el registro.
+  let servicio;
+  try {
+    servidorGatt = await conTiempoLimite(device.gatt.connect(), 15000);
+    servicio = await conTiempoLimite(servidorGatt.getPrimaryService(NUS_SERVICIO), 15000);
+  } catch (e) {
+    const nombre = (e && e.name) || "";
+    if (nombre === "NotFoundError" || ((e && e.message) || "").indexOf("tarda demasiado") >= 0) {
+      mostrarAviso("No he podido conectar con el nodo: no contesta (apagado, fuera de alcance o ya " +
+                   "conectado a otro aparato). Enciendelo y pulsalo otra vez.", "err");
+      log("ERROR al conectar por " + camino + ": el nodo no contesta o tarda demasiado.", "err");
+    } else {
+      mostrarAviso("No he podido conectar con el nodo: " + ((e && e.message) || e) +
+                   ". Prueba con Conectar y elige el nodo en la lista.", "err");
+      log("ERROR al conectar por " + camino + ": " + ((e && e.message) || e), "err");
+    }
+    await cerrarConexion();
+    return;
+  }
+  $("tablaInfo").className = "datos";
+  $("infoServicio").textContent = NUS_SERVICIO + "  (encontrado)";
+
+  // Caracteristica de escritura (RX).
+  try {
+    caracteristicaRx = await servicio.getCharacteristic(NUS_RX);
+  } catch (e) {
+    mostrarAviso("Falta la caracteristica RX (" + NUS_RX + "), que es por donde se le mandan " +
+                 "las lineas al nodo, o no deja escribir en ella: " + ((e && e.message) || e) + ".", "err");
+    log("ERROR: falta la caracteristica RX (" + NUS_RX + "): " + ((e && e.message) || e), "err");
+    $("infoRx").textContent = NUS_RX + "  (NO esta)";
+    await cerrarConexion();
+    return;
+  }
+  $("infoRx").textContent = NUS_RX + "  (encontrada)";
+
+  // Caracteristica de notificaciones (TX).
+  try {
+    caracteristicaTx = await servicio.getCharacteristic(NUS_TX);
+  } catch (e) {
+    mostrarAviso("Falta la caracteristica TX (" + NUS_TX + "), que es por donde el nodo cuenta " +
+                 "lo que recibe, o no deja suscribirse a ella: " + ((e && e.message) || e) + ".", "err");
+    log("ERROR: falta la caracteristica TX (" + NUS_TX + "): " + ((e && e.message) || e), "err");
+    $("infoTx").textContent = NUS_TX + "  (NO esta)";
+    await cerrarConexion();
+    return;
+  }
+  $("infoTx").textContent = NUS_TX + "  (encontrada)";
+
+  receptor = new ReceptorKiss(alTenerTrama, (motivo) => log("KISS: " + motivo, "warn"));
+
+  try {
+    await caracteristicaTx.startNotifications();
+    caracteristicaTx.addEventListener("characteristicvaluechanged", alNotificacion);
+  } catch (e) {
+    mostrarAviso("He encontrado la caracteristica TX pero el nodo no me deja suscribirme a sus " +
+                 "avisos: " + ((e && e.message) || e) + ".", "err");
+    log("ERROR al suscribirme a los avisos: " + ((e && e.message) || e), "err");
+    await cerrarConexion();
+    return;
+  }
+
+  btnDesconectar.disabled = false;
+  btnEnviar.disabled = false;
+  ponerEstado("Conectado", "on");
+  mostrarAviso("Conectado. Ya puedes escribir una linea APRS abajo y pulsar Enviar.", "info");
+  notaInfo("Conectado a " + (device.name || "(sin nombre)"));
+  log("Conectado. Escuchando los avisos del nodo (caracteristica TX).", "sys");
+
+  // El nivel de bateria es un extra: si no esta, no pasa nada.
+  leerBateria().then((nivel) => {
+    if (nivel !== null) {
+      notaInfo("Nivel de bateria que anuncia el nodo: " + nivel + "%");
+      log("Bateria del nodo: " + nivel + "%", "sys");
+    }
+  }).catch(() => {});
+}
+
+// El nivel de bateria no es obligatorio; se intenta con un tope de tiempo para
+// que una caracteristica que no contesta no deje la conexion colgada.
+function conTiempoLimite(promesa, ms) {
+  return new Promise((resolver, rechazar) => {
+    const t = setTimeout(() => rechazar(new Error("tarda demasiado")), ms);
+    promesa.then((v) => { clearTimeout(t); resolver(v); },
+                 (e) => { clearTimeout(t); rechazar(e); });
+  });
+}
+
+async function leerBateria() {
+  if (!servidorGatt) return null;
+  try {
+    const s = await conTiempoLimite(servidorGatt.getPrimaryService(SERVICIO_BATERIA), 1500);
+    const c = await conTiempoLimite(s.getCharacteristic("battery_level"), 1500);
+    const v = await conTiempoLimite(c.readValue(), 2000);
+    if (!v || !v.byteLength) return null;
+    return v.getUint8(0);
+  } catch (e) {
+    return null;
+  }
+}
+
+function alNotificacion(evento) {
+  const dv = evento.target.value;                  // DataView con los bytes
+  const bytes = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
+  notificaciones++;
+  log("Aviso del nodo numero " + notificaciones + ": " + bytes.length + " bytes -> " +
+      bytesAHex(bytes) + (bytes.length ? "  |" + bytesATexto(bytes) + "|" : ""), "raw");
+  if (!receptor) return;
+  for (const b of bytes) receptor.feed(b);
+}
+
+// Una trama AX.25 completa que ha llegado del nodo.
+function alTenerTrama(bytes) {
+  tramas++;
+  const linea = ax25ALinea(bytes);
+  const hex = bytesAHex(bytes);
+  if (linea.ok) {
+    mandarTrama("RX", "trama " + tramas + ": " + linea.texto, hex, null, { len: bytes.length });
+  } else {
+    // No se tira en silencio: se cuenta lo que se ha podido leer. El texto ya
+    // lleva el motivo entre parentesis.
+    mandarTrama("RX", "trama " + tramas + " (con pegas): " + linea.texto, hex, null, { len: bytes.length });
+    log("KISS: trama " + tramas + " con pegas (ver la linea de al lado).", "warn");
+  }
+  // Si la trama trae una posicion, se aprovecha para el punto "donde esta ahora".
+  const pos = posicionEnLinea(linea.texto);
+  if (pos) alTenerPosicion(pos, "trama AX.25 " + tramas);
+}
+
+function alDesconectar() {
+  log("Se ha perdido la conexion con el nodo (o lo has apagado).", "warn");
+  mostrarAviso("Se ha perdido la conexion con el nodo. Comprueba que sigue encendido y que " +
+               "no se ha ido de alcance, y pulsa Conectar o Reconectar otra vez.", "warn");
+  ponerEstado("Desconectado", "err");
+  notaInfo("Conexion perdida a las " + horaCorta());
+  btnDesconectar.disabled = true;
+  btnEnviar.disabled = true;
+  btnConectar.disabled = false;
+  btnReconectar.disabled = !dispositivoConocido;
+  caracteristicaRx = null;
+  caracteristicaTx = null;
+}
+
+async function cerrarConexion() {
+  try {
+    if (caracteristicaTx) {
+      caracteristicaTx.removeEventListener("characteristicvaluechanged", alNotificacion);
+      try { await caracteristicaTx.stopNotifications(); } catch (e) { /* da igual */ }
+    }
+  } catch (e) { /* da igual */ }
+  caracteristicaRx = null;
+  caracteristicaTx = null;
+  try {
+    if (dispositivo && dispositivo.gatt && dispositivo.gatt.connected) dispositivo.gatt.disconnect();
+  } catch (e) { /* da igual */ }
+  btnDesconectar.disabled = true;
+  btnEnviar.disabled = true;
+  btnConectar.disabled = false;
+  // "Reconectar" solo tiene sentido si el navegador ya conoce el aparato.
+  btnReconectar.disabled = !dispositivoConocido;
+  ponerEstado("Sin conectar", "off");
+}
+
+// ------------------- reconectar sin lista (sin ningun clic) ----------------
+// requestDevice() siempre obliga a pulsar. En cambio getDevices() devuelve los
+// aparatos que ya se autorizaron antes, y con esos device.gatt.connect() conecta
+// sin abrir ninguna lista. Es lo que permite volver a hablar con el nodo desde
+// una pagina recien cargada (y, mas adelante, desde la app del movil).
+
+async function reconectarSinLista() {
+  ocultarAviso();
+  if (!navigator.bluetooth) {
+    mostrarAviso("Este navegador no sabe hablar por Bluetooth. Abre esta misma direccion " +
+                 "con Chrome o con Edge.", "err");
+    log("ERROR: no hay Web Bluetooth, asi que no puedo reconectar sin lista.", "err");
+    return;
+  }
+  if (dispositivoConocido) {
+    log("CAMINO B (sin lista): reconecto con el aparato que ya conozco.", "sys");
+    btnReconectar.disabled = true;
+    btnConectar.disabled = true;
+    ponerEstado("Conectando...", "off");
+    await usarDispositivo(dispositivoConocido, "CAMINO B (sin lista)");
+    btnConectar.disabled = false;
+    return;
+  }
+  log("CAMINO B (sin lista): no tengo ningun aparato apuntado; busco en la lista del navegador.", "sys");
+  const r = await buscarDispositivoConocido(true);
+  if (!r.ok) return;
+  btnConectar.disabled = true;
+  btnReconectar.disabled = true;
+  ponerEstado("Conectando...", "off");
+  await usarDispositivo(r.device, "CAMINO B (sin lista)");
+  btnConectar.disabled = false;
+}
+
+// getDevices() devuelve los aparatos ya autorizados para esta pagina.
+// Devuelve {ok:true, device} / {ok:true, device:null} / {ok:false, motivo}.
+async function buscarDispositivoConocido(conAviso) {
+  if (!navigator.bluetooth || typeof navigator.bluetooth.getDevices !== "function") {
+    const motivo = "este navegador no sabe recordar los aparatos (le falta getDevices): hay que " +
+                   "pulsar Conectar y elegir el nodo en la lista cada vez";
+    if (conAviso) {
+      mostrarAviso("No puedo reconectar sin lista: " + motivo + ". El resto de la pagina funciona igual.", "warn");
+    }
+    log("CAMINO B (sin lista) no disponible: " + motivo + ".", "warn");
+    return { ok: false, motivo: motivo };
+  }
+  let lista = [];
+  try {
+    lista = await navigator.bluetooth.getDevices();
+  } catch (e) {
+    const motivo = "el navegador no me deja mirar los aparatos ya autorizados (" +
+                   ((e && e.name) || "") + ": " + ((e && e.message) || e) + ")";
+    if (conAviso) {
+      mostrarAviso("No puedo reconectar sin lista: " + motivo + ". Pulsa Conectar y elige el nodo.", "warn");
+    }
+    log("CAMINO B (sin lista) no disponible: " + motivo + ".", "warn");
+    return { ok: false, motivo: motivo };
+  }
+  const apuntado = leerDato(CLAVE_DISPOSITIVO);
+  log("CAMINO B (sin lista): el navegador recuerda " + lista.length + " aparato(s) autorizado(s)" +
+      (lista.length ? " (" + lista.map((d) => d.name || "sin nombre").join(", ") + ")" : "") +
+      "; yo tenia apuntado " + (apuntado ? "el id " + apuntado : "ninguno") + ".", "sys");
+  let elegido = null;
+  if (apuntado) elegido = lista.find((d) => d.id === apuntado) || null;
+  if (!elegido && lista.length === 1) {
+    elegido = lista[0];
+    log("No encuentro el id apuntado, pero el navegador solo recuerda uno: uso ese.", "sys");
+  }
+  if (!elegido) {
+    log("No hay ningun aparato apuntado que el navegador recuerde: no puedo reconectar sin lista.", "sys");
+    return { ok: true, device: null };
+  }
+  dispositivoConocido = elegido;
+  if (elegido.id) guardarDato(CLAVE_DISPOSITIVO, elegido.id);
+  return { ok: true, device: elegido };
+}
+
+/* ======================= 7. mandar una linea ============================= */
+
+function partirEnTrozos(bytes, tamano) {
+  const trozos = [];
+  for (let i = 0; i < bytes.length; i += tamano) {
+    trozos.push(bytes.subarray(i, Math.min(i + tamano, bytes.length)));
+  }
+  return trozos;
+}
+
+async function escribirTrozos(trozos) {
+  for (let i = 0; i < trozos.length; i++) {
+    const t = trozos[i];
+    if (typeof caracteristicaRx.writeValueWithoutResponse === "function") {
+      await caracteristicaRx.writeValueWithoutResponse(t);
+    } else {
+      await caracteristicaRx.writeValue(t);
+    }
+    if (i < trozos.length - 1) {
+      await new Promise((r) => setTimeout(r, PAUSA_ENTRE_TROZOS));
+    }
+  }
+}
+
+let enviandoLinea = false;
+
+async function enviarLinea(texto) {
+  const linea = String(texto || "").trim();
+  if (!linea) return false;
+
+  const ax25 = lineaAAx25(linea);
+  if (ax25.error) {
+    mostrarAviso("No he podido preparar la linea: " + ax25.error + ".", "err");
+    log("ERROR al preparar \"" + linea + "\": " + ax25.error, "err");
+    return false;
+  }
+  ocultarAviso();
+  const kiss = kissEnvolver(ax25.bytes, CMD_DATOS);
+  const trozos = partirEnTrozos(kiss, TAMANO_TROZO);
+  const hex = bytesAHex(kiss);
+
+  log("Preparo la linea: " + ax25.resumen, "sys");
+  if (ax25.aviso) log("Aviso: " + ax25.aviso, "warn");
+  log("AX.25 de " + ax25.bytes.length + " bytes + KISS = " + kiss.length +
+      " bytes, en " + trozos.length + " trozo(s) de " + TAMANO_TROZO + " como maximo.", "sys");
+  mandarTrama("TX", "enviada: " + ax25.resumen, hex, null, { len: kiss.length });
+
+  try {
+    await escribirTrozos(trozos);
+  } catch (e) {
+    const nombre = (e && e.name) || "";
+    if (nombre === "NetworkError" || nombre === "InvalidStateError") {
+      mostrarAviso("Se ha cortado la conexion mientras mandaba la linea. Pulsa Conectar otra vez.", "err");
+      log("ERROR al enviar: se ha perdido la conexion (" + nombre + ").", "err");
+      alDesconectar();
+    } else {
+      mostrarAviso("El nodo no ha aceptado la escritura: " + ((e && e.message) || e) + ".", "err");
+      log("ERROR al escribir en la caracteristica RX: " + ((e && e.message) || e), "err");
+    }
+    return false;
+  }
+
+  log("Enviada al nodo: " + ax25.resumen, "tx");
+  return true;
+}
+
+async function enviarTodo() {
+  if (enviandoLinea) return;
+  if (!caracteristicaRx) {
+    mostrarAviso("Primero hay que conectar con el nodo (boton Conectar de arriba).", "warn");
+    return;
+  }
+  const lineas = cajaTexto.value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+  if (!lineas.length) {
+    mostrarAviso("Escribe antes una linea, por ejemplo: EA2OY-7>APZFKT,WIDE1-1:>prueba", "warn");
+    return;
+  }
+  enviandoLinea = true;
+  btnEnviar.disabled = true;
+  let bien = 0;
+  for (let i = 0; i < lineas.length; i++) {
+    if (await enviarLinea(lineas[i])) bien++;
+    if (i < lineas.length - 1) await new Promise((r) => setTimeout(r, 400));
+  }
+  enviandoLinea = false;
+  btnEnviar.disabled = !caracteristicaRx;
+  if (bien && bien === lineas.length) {
+    mostrarAviso("Enviadas " + bien + " linea(s) al nodo. Ahora mira abajo lo que contesta.", "info");
+  } else if (bien) {
+    mostrarAviso("He enviado " + bien + " de " + lineas.length + " lineas: mira el aviso rojo de arriba.", "warn");
+  }
+}
+
+/* ============ 8. viaje: registro por USB, GPX/KML y mapa ================= */
+/* Nada de esto necesita Bluetooth. El registro se pide por el cable serie      */
+/* (WebSerial), se lee hasta "LOG END" y el fichero se monta aqui dentro.       */
+
+let puertoSerie = null;         // el puerto elegido (se acuerda entre descargas)
+let lectorSerie = null;         // el que va leyendo los bytes que manda el nodo
+let descargaEnCurso = false;
+let cancelarDescarga = false;
+
+function ponerAvisoViaje(texto, tipo) {
+  cajaAvisoViaje.textContent = texto;
+  cajaAvisoViaje.className = "aviso " + (tipo || "info");
+}
+
+function ocultarAvisoViaje() {
+  cajaAvisoViaje.className = "aviso info hidden";
+  cajaAvisoViaje.textContent = "";
+}
+
+function hayWebSerial() {
+  return typeof navigator.serial !== "undefined" && navigator.serial !== null;
+}
+
+// --- pedir el puerto (aqui SI hace falta un clic: lo exige el navegador) ---
+
+async function pedirPuertoSerie() {
+  if (!hayWebSerial()) {
+    mostrarAvisoViaje("Este navegador no sabe hablar por el cable USB (no tiene WebSerial). " +
+      "Abre la pagina con Chrome o Edge, desde http://localhost:8099/ o https.", "err");
+    log("ERROR: no hay WebSerial (navigator.serial no existe), asi que no puedo pedir el registro.", "err");
+    return null;
+  }
+  log("Pido al navegador que me deje elegir el puerto serie del nodo (hace falta un clic de una persona).", "sys");
+  try {
+    // getPorts() devuelve los puertos ya autorizados: no abre la lista y no
+    // necesita clic. Si no hay ninguno, hay que pedirlo (si, con un clic).
+    let conocidos = [];
+    try {
+      conocidos = await navigator.serial.getPorts();
+    } catch (e) {
+      conocidos = [];
+    }
+    if (conocidos.length === 1) {
+      log("El navegador ya tenia autorizado un puerto serie: lo uso sin abrir ninguna lista.", "sys");
+      return conocidos[0];
+    }
+    if (conocidos.length > 1) {
+      log("El navegador recuerda " + conocidos.length + " puertos serie; abro la lista para elegir uno.", "sys");
+    }
+    const puerto = await navigator.serial.requestPort();
+    return puerto;
+  } catch (e) {
+    const nombre = (e && e.name) || "";
+    if (nombre === "NotFoundError") {
+      mostrarAvisoViaje("No has elegido ningun puerto (o has cerrado la lista). El navegador obliga a " +
+        "elegirlo a mano porque puede haber varios aparatos conectados. Prueba otra vez.", "warn");
+      log("Has cerrado la lista de puertos serie sin elegir ninguno.", "warn");
+    } else if (nombre === "SecurityError") {
+      mostrarAvisoViaje("El navegador ha bloqueado el acceso al puerto serie. La pagina tiene que venir de " +
+        "http://localhost:8099/ (o de https) y estar abierta en Chrome o Edge.", "err");
+      log("ERROR de seguridad al pedir el puerto serie: " + ((e && e.message) || e), "err");
+    } else {
+      mostrarAvisoViaje("No he podido pedir el puerto serie: " + ((e && e.message) || e) + ".", "err");
+      log("ERROR al pedir el puerto serie: " + ((e && e.message) || e), "err");
+    }
+    return null;
+  }
+}
+
+async function abrirPuertoSerie(puerto) {
+  try {
+    await puerto.open({ baudRate: BAUDIOS });
+    return true;
+  } catch (e) {
+    const nombre = (e && e.name) || "";
+    let texto = "No he podido abrir el puerto serie: " + ((e && e.message) || e) + ".";
+    if (nombre === "NetworkError" || nombre === "InvalidStateError") {
+      texto += " Puede que otro programa lo tenga abierto (el monitor serie de PlatformIO, " +
+               "el IDE de Arduino, otra pestana de esta misma pagina...): cierralo y prueba otra vez.";
+    }
+    mostrarAvisoViaje(texto, "err");
+    log("ERROR al abrir el puerto serie: " + ((e && e.message) || e), "err");
+    return false;
+  }
+}
+
+async function cerrarPuertoSerie(avisar) {
+  if (!puertoSerie) return;
+  try {
+    if (lectorSerie) {
+      try { await lectorSerie.cancel(); } catch (e) { /* da igual */ }
+    }
+  } catch (e) { /* da igual */ }
+  try {
+    await puertoSerie.close();
+    log("Puerto serie cerrado." + (avisar ? " El nodo vuelve a estar libre para otros programas." : ""), "sys");
+  } catch (e) {
+    log("Aviso: no he podido cerrar el puerto serie: " + ((e && e.message) || e) + ".", "warn");
+  }
+  puertoSerie = null;
+  btnCerrarPuerto.disabled = true;
+}
+
+// --- leer el volcado del registro ------------------------------------------
+
+// Manda "log dump" por el puerto serie y devuelve las lineas del registro del
+// nodo, ya sin el prefijo "LOG ". Termina cuando llega "LOG END" (o cuando se
+// agota el tiempo, y entonces lo dice).
+async function volcarRegistro() {
+  if (descargaEnCurso) {
+    log("Aviso: ya hay una descarga en marcha; espera a que acabe.", "warn");
+    return null;
+  }
+  const puerto = await pedirPuertoSerie();
+  if (!puerto) return null;
+  puertoSerie = puerto;
+  if (!(await abrirPuertoSerie(puerto))) { puertoSerie = null; return null; }
+  btnCerrarPuerto.disabled = false;
+
+  descargaEnCurso = true;
+  cancelarDescarga = false;
+  const lineas = [];              // lineas del registro, ya sin el prefijo "LOG "
+  const todas = [];               // todo lo que ha llegado, tal cual (para el aviso)
+  let resto = "";                 // trozo de linea a medias entre dos lecturas
+  let leido = 0;                  // caracteres leidos
+  let modoCrudo = false;          // el nodo no pone "LOG " delante de cada linea
+  let lineasAvisadas = 0;         // ultima cifra que se ha enseñado en pantalla
+  let motivoFin = "";
+  let finVisto = false;           // ya ha llegado "LOG END"
+  let errorLectura = null;
+  const t0 = Date.now();
+  let ultimoDato = Date.now();
+  const decodificador = new TextDecoder();
+
+  function apuntarLinea(bruta) {
+    let ln = bruta.replace(/\r$/, "");
+    todas.push(ln);
+    if (/^LOG BEGIN\s*$/.test(ln)) {
+      log("El nodo empieza a mandar el registro (LOG BEGIN).", "sys");
+      return;
+    }
+    if (/^LOG END\s*$/.test(ln)) {
+      log("El nodo dice que el registro se acaba ahi (LOG END).", "sys");
+      motivoFin = "fin";
+      finVisto = true;
+      return;
+    }
+    if (ln.startsWith(PREFIJO_DUMP)) {
+      lineas.push(ln.slice(PREFIJO_DUMP.length));
+      return;
+    }
+    // Otra version del firmware podria no numerar las lineas: si la linea tiene
+    // pinta de posicion, se acepta igual.
+    if (PATRON_TRK.test(ln) || PATRON_TRK_SIN_FECHA.test(ln)) {
+      lineas.push(ln);
+      modoCrudo = true;
+    }
+  }
+
+  // Procesa lo que va llegando y va sacando las lineas completas.
+  function apuntarTrozo(texto) {
+    if (!texto) return;
+    leido += texto.length;
+    resto += texto;
+    let corte;
+    while ((corte = resto.indexOf("\n")) >= 0) {
+      const ln = resto.slice(0, corte);
+      resto = resto.slice(corte + 1);
+      apuntarLinea(ln);
+    }
+    // De vez en cuando se apunta por donde va, para que se vea que no se ha
+    // quedado colgado (sin llenar el registro con una linea por linea).
+    if (lineas.length >= lineasAvisadas + 500) {
+      lineasAvisadas = lineas.length;
+      ponerAvisoViaje("Leyendo el registro del nodo... ya van " + lineas.length + " lineas.", "info");
+    }
+  }
+
+  // Una lectura con tope de tiempo: si el nodo calla, se devuelve "silencio" (que
+  // no es un fallo) y el bucle decide si ya ha terminado.
+  async function leerTrozo(ms) {
+    try {
+      return await conTiempoLimite(lectorSerie.read(), ms);
+    } catch (e) {
+      if ((e && e.message) === "tarda demasiado") return "silencio";
+      errorLectura = e;
+      return "fallo";
+    }
+  }
+
+  try {
+    // Los cables serie modernos no hacen falta DTR/RTS, pero el firmware puede
+    // mirarlos: si el navegador no deja tocarlos, se sigue igualmente.
+    try { await puerto.setSignals({ dataTerminalReady: true, requestToSend: true }); } catch (e) { /* opcional */ }
+    lectorSerie = puerto.readable.getReader();
+    await puerto.writable.getWriter().write(new TextEncoder().encode(ORDEN_DUMP + "\n"));
+    log("Orden enviada al nodo por USB: \"" + ORDEN_DUMP + "\" (" + BAUDIOS + " baudios).", "sys");
+
+    while (!cancelarDescarga) {
+      if (Date.now() - t0 > ESPERA_MAXIMA_MS) { motivoFin = "tiempo"; break; }
+      if (lineas.length >= TOPE_LINEAS) { motivoFin = "tope"; break; }
+
+      const r = await leerTrozo(5000);
+      if (r === "fallo") { motivoFin = "fallo"; break; }
+      if (r === "silencio") {
+        if (finVisto) { motivoFin = "fin"; break; }
+        if (Date.now() - ultimoDato > ESPERA_ENTRE_LINEAS_MS) { motivoFin = "silencio"; break; }
+        continue;
+      }
+      if (r.done) { motivoFin = finVisto ? "fin" : "puerto"; break; }
+      ultimoDato = Date.now();
+      apuntarTrozo(decodificador.decode(r.value, { stream: true }));
+      if (finVisto) break;
+    }
+    if (errorLectura) throw errorLectura;
+  } catch (e) {
+    if (!motivoFin) motivoFin = "fallo";
+    mostrarAvisoViaje("Se ha cortado la lectura del puerto serie: " + ((e && e.message) || e) +
+      ". El cable puede haberse soltado o el nodo reiniciarse.", "err");
+    log("ERROR leyendo el puerto serie: " + ((e && e.message) || e), "err");
+  } finally {
+    try { if (lectorSerie) lectorSerie.releaseLock(); } catch (e) { /* da igual */ }
+    lectorSerie = null;
+    // Lo que quedara a medias al final (sin salto de linea) tambien vale.
+    if (resto.length) { apuntarLinea(resto); resto = ""; }
+  }
+
+  if (modoCrudo) {
+    log("Aviso: el nodo no numeraba las lineas con \"LOG \"; se han aceptado las que tenian " +
+        "pinta de posicion. Si sale un viaje raro, avisa a quien toca el firmware.", "warn");
+  }
+  log("Volcado terminado (" + motivoFin + "): " + lineas.length + " linea(s) de registro de " +
+      todas.length + " leida(s), " + leido + " caracteres, en " +
+      ((Date.now() - t0) / 1000).toFixed(1) + " s.", "sys");
+  if (motivoFin !== "fin") {
+    mostrarAvisoViaje("El volcado no llego a su final (\"" + FIN_DUMP + "\"): " +
+      (motivoFin === "silencio" ? "el nodo dejo de mandar y no lo dijo" :
+       motivoFin === "tope" ? "venian demasiadas lineas" :
+       motivoFin === "puerto" ? "se cerro el puerto" :
+       motivoFin === "fallo" ? "fallo la lectura" : "se agoto el tiempo") +
+      ". Se usan las " + lineas.length + " lineas que si llegaron.", "warn");
+    log("AVISO: el volcado no termino con \"" + FIN_DUMP + "\" (fin: " + motivoFin + ").", "warn");
+  }
+  descargaEnCurso = false;
+  if (!lineas.length) {
+    mostrarAvisoViaje("El nodo ha contestado, pero no ha mandado ninguna linea del registro. " +
+      "Puede que el registro este vacio o apagado (en el nodo: \"log stats\").", "warn");
+    log("AVISO: el volcado vino vacio (0 lineas).", "warn");
+  }
+  return lineas;
+}
+
+// --- el mismo analisis que tools/log2gpx.js ---------------------------------
+// (los patrones y los ficheros de salida son los del programa de referencia: si
+//  se cambia alli, hay que cambiarlo aqui)
+
+function analizarRegistro(lineas) {
+  const puntos = [], eventos = [];
+  for (const ln of lineas) {
+    let m = PATRON_TRK.exec(ln);
+    if (m) {
+      // El motivo del beacon (F/R/C/D/M/P) es la ultima palabra de la linea.
+      const trozos = ln.trim().split(/\s+/);
+      puntos.push({ iso: m[1] + "-" + m[2] + "-" + m[3] + "T" + m[4] + ":" + m[5] + ":" + m[6] + "Z",
+                    lat: +m[7], lon: +m[8], spd: +m[9], crs: +m[10], alt: +m[11],
+                    motivo: trozos[trozos.length - 1] || "", cola: ln });
+      continue;
+    }
+    m = PATRON_TRK_SIN_FECHA.exec(ln);
+    if (m) {
+      const trozos = ln.trim().split(/\s+/);
+      puntos.push({ iso: null, lat: +m[4], lon: +m[5], spd: +m[6], crs: +m[7], alt: +m[8],
+                    motivo: trozos[trozos.length - 1] || "", cola: ln });
+      continue;
+    }
+    eventos.push(ln);
+  }
+  return { puntos: puntos, eventos: eventos };
+}
+
+function escaparXml(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function generarGpx(puntos, nombre) {
+  let out = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<gpx version="1.1" creator="Faketec_APRS_Igate_EA2OY" xmlns="http://www.topografix.com/GPX/1/1">\n' +
+    ' <trk>\n  <name>' + escaparXml(nombre) + '</name>\n  <trkseg>\n';
+  for (const p of puntos) {
+    out += '   <trkpt lat="' + p.lat + '" lon="' + p.lon + '">';
+    if (Number.isFinite(p.alt)) out += '<ele>' + p.alt + '</ele>';
+    if (p.iso) out += '<time>' + p.iso + '</time>';
+    if (Number.isFinite(p.spd)) out += '<speed>' + (p.spd / 3.6).toFixed(2) + '</speed>';
+    if (Number.isFinite(p.crs)) out += '<course>' + p.crs + '</course>';
+    out += '</trkpt>\n';
+  }
+  return out + '  </trkseg>\n </trk>\n</gpx>\n';
+}
+
+function generarKml(puntos, nombre) {
+  const coords = puntos.map((p) =>
+    p.lon + ',' + p.lat + ',' + (Number.isFinite(p.alt) ? p.alt : 0)).join(' ');
+  let marcas = '';
+  for (const p of puntos) {
+    marcas += '<Placemark><name>' + (p.iso || '') + '</name><Point><coordinates>' +
+              p.lon + ',' + p.lat + ',' + (Number.isFinite(p.alt) ? p.alt : 0) +
+              '</coordinates></Point></Placemark>\n';
+  }
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>' + escaparXml(nombre) + '</name>\n' +
+    '<Style id="line"><LineStyle><width>3</width><color>ff00a5ff</color></LineStyle></Style>\n' +
+    '<Placemark><name>Ruta</name><styleUrl>#line</styleUrl><LineString><altitudeMode>absolute</altitudeMode>' +
+    '<coordinates>' + coords + '</coordinates></LineString></Placemark>\n' + marcas + '</Document></kml>\n';
+}
+
+function distanciaM(a, b) {
+  const R = 6371000, rad = Math.PI / 180;
+  const dp = (b.lat - a.lat) * rad, dl = (b.lon - a.lon) * rad;
+  const x = Math.sin(dp / 2) * Math.sin(dp / 2) +
+            Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dl / 2) * Math.sin(dl / 2);
+  return 2 * R * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+function marcaDeTiempo() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return "" + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "_" +
+         p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+}
+
+// Guarda el texto como fichero sin pasar por ningun servidor.
+function descargarTexto(nombre, texto, tipoMime) {
+  const blob = new Blob([texto], { type: tipoMime });
+  const url = URL.createObjectURL(blob);
+  const enlace = document.createElement("a");
+  enlace.href = url;
+  enlace.download = nombre;
+  enlace.style.display = "none";
+  document.body.appendChild(enlace);
+  enlace.click();
+  document.body.removeChild(enlace);
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function nombreDeViaje(ext) {
+  return "log_" + marcaDeTiempo() + "." + ext;
+}
+
+function textoDeViaje(puntos, eventos) {
+  let dist = 0;
+  for (let i = 1; i < puntos.length; i++) dist += distanciaM(puntos[i - 1], puntos[i]);
+  const t0 = puntos.length ? (puntos[0].iso || puntos[0].cola.slice(0, 8)) : "-";
+  const t1 = puntos.length ? (puntos[puntos.length - 1].iso || puntos[puntos.length - 1].cola.slice(0, 8)) : "-";
+  let conMotivo = 0;
+  for (const p of puntos) if (MOTIVOS[p.motivo]) conMotivo++;
+  return "puntos=" + puntos.length + " de " + t0 + " a " + t1 +
+         ", distancia=" + (dist / 1000).toFixed(2) + " km, eventos=" + eventos.length +
+         ", con motivo F/R/C/D/M/P=" + conMotivo;
+}
+
+// --- descargar (GPX o KML) -------------------------------------------------
+
+async function descargarViaje(formato) {
+  ocultarAvisoViaje();
+  btnGpx.disabled = true;
+  btnKml.disabled = true;
+  try {
+    const lineas = await volcarRegistro();
+    if (lineas === null) {
+      ponerAvisoViaje("No he podido leer el registro del nodo: mira el aviso de arriba.", "err");
+      return;
+    }
+    if (!lineas.length) {
+      // Nada de ficheros vacios: se dice claramente que no hay posiciones.
+      ponerAvisoViaje("El registro del nodo no trae ninguna posicion, asi que NO he generado el " +
+        "fichero " + formato.toUpperCase() + " (seria un fichero vacio). Comprueba en el nodo que el " +
+        "registro esta encendido y que ha habido algun viaje.", "err");
+      log("AVISO: no genero el " + formato.toUpperCase() + " porque el registro vino vacio.", "warn");
+      return;
+    }
+    const datos = analizarRegistro(lineas);
+    if (!datos.puntos.length) {
+      ponerAvisoViaje("He leido " + lineas.length + " linea(s) del registro, pero ninguna es una " +
+        "posicion (\"TX TRK\"), asi que NO he generado el fichero " + formato.toUpperCase() +
+        ". El viaje no tiene posiciones que guardar.", "err");
+      log("AVISO: no genero el " + formato.toUpperCase() + " porque no hay lineas \"TX TRK\" " +
+          "(leidas " + lineas.length + ").", "warn");
+      return;
+    }
+    const nombre = nombreDeViaje(formato);
+    const texto = formato === "gpx" ? generarGpx(datos.puntos, nombre.replace(/\.gpx$/, ""))
+                                    : generarKml(datos.puntos, nombre.replace(/\.kml$/, ""));
+    descargarTexto(nombre, texto, formato === "gpx" ? "application/gpx+xml" : "application/vnd.google-earth.kml+xml");
+    const resumen = textoDeViaje(datos.puntos, datos.eventos);
+    ponerAvisoViaje("Fichero " + formato.toUpperCase() + " preparado: " + nombre + " (" + resumen +
+      "). Si el navegador no lo ha guardado solo, mira si te ha preguntado donde.", "info");
+    log("Descarga " + formato.toUpperCase() + " hecha: " + nombre + " (" + resumen + ").", "sys");
+    // El resumen tambien va al fichero de tramas, para poder cruzarlo con el log.
+    encolar("/frames", { ts: horaCorta(), dir: "PG", summary: formato.toUpperCase() + " " + nombre +
+      " | " + resumen, text: formato.toUpperCase() + " " + nombre, len: datos.puntos.length });
+  } catch (e) {
+    ponerAvisoViaje("Se ha torcido la descarga del " + formato.toUpperCase() + ": " +
+      ((e && e.message) || e) + ".", "err");
+    log("ERROR al preparar el " + formato.toUpperCase() + ": " + ((e && e.message) || e), "err");
+  } finally {
+    btnGpx.disabled = false;
+    btnKml.disabled = false;
+  }
+}
+
+/* ===================== 9. el mapa (Leaflet + OSM) ======================== */
+
+let leafletCargando = null;
+let mapa = null;              // el mapa de Leaflet
+let capaRuta = null;          // la linea de la ruta y sus marcas
+let marcaActual = null;       // donde esta el nodo ahora
+let ultimosPuntos = [];       // puntos del ultimo viaje pintado
+let posicionViva = null;      // ultima posicion recibida por Bluetooth
+let refrescoPendiente = false;
+
+const MOTIVOS = {
+  "F": "primer fix",
+  "R": "ritmo",
+  "C": "curva",
+  "D": "distancia",
+  "M": "a mano",
+  "P": "parado"
+};
+
+function ponerEstadoMapa(texto) {
+  elMapaEstado.textContent = texto || "";
+}
+
+function falloDelMapa() {
+  cajaMapa.className = "hidden";
+  cajaAvisoMapa.className = "aviso err";
+  cajaAvisoMapa.innerHTML = "El mapa no puede salir: <b>hace falta conexion a internet</b> para " +
+    "descargar la libreria de mapas (Leaflet) y las teselas de OpenStreetMap. " +
+    "Las descargas de <b>GPX</b> y <b>KML</b> siguen funcionando igual, porque se montan aqui " +
+    "dentro y no necesitan internet. Comprueba la conexion y vuelve a pulsar " +
+    "<b>Ver en el mapa</b>.";
+  ponerEstadoMapa("Sin internet: el mapa no esta disponible.");
+}
+
+// La libreria del mapa es lo UNICO que se baja de internet, y solo cuando de
+// verdad se va a usar el mapa. Se pide una sola vez.
+function cargarLeaflet() {
+  if (typeof window.L !== "undefined" && window.L) return Promise.resolve(window.L);
+  if (leafletCargando) return leafletCargando;
+  leafletCargando = new Promise((resolver, rechazar) => {
+    log("El mapa necesita internet: pido la libreria Leaflet a " + LEAFLET_JS + ".", "sys");
+    const css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = LEAFLET_CSS;
+    css.integrity = LEAFLET_CSS_INTEGRIDAD;
+    css.crossOrigin = "";
+    document.head.appendChild(css);
+    const js = document.createElement("script");
+    js.src = LEAFLET_JS;
+    js.integrity = LEAFLET_JS_INTEGRIDAD;
+    js.crossOrigin = "";
+    js.async = true;
+    js.onload = () => {
+      if (window.L && typeof window.L.map === "function") {
+        log("Libreria del mapa cargada.", "sys");
+        resolver(window.L);
+      } else {
+        log("ERROR: la libreria del mapa llego, pero no trae lo que hace falta (L.map).", "err");
+        rechazar(new Error("la libreria no trae L.map"));
+      }
+    };
+    js.onerror = () => {
+      log("ERROR: no he podido descargar la libreria del mapa (sin internet, o el CDN no responde).", "err");
+      rechazar(new Error("no se ha podido descargar la libreria del mapa"));
+    };
+    document.head.appendChild(js);
+  });
+  // Si falla, se olvida el intento para poder probar otra vez al pulsar el boton.
+  leafletCargando.catch(() => { leafletCargando = null; });
+  return leafletCargando;
+}
+
+// Pinta el viaje: la ruta como linea, marcas de salida y llegada, y una marca en
+// cada punto que el registro del nodo señala como notable (F/R/C/D/M/P).
+function dibujarViaje(datos, elMapa) {
+  const L = window.L;
+  const plano = elMapa || mapa;
+  if (!plano) return 0;
+  if (capaRuta) { plano.removeLayer(capaRuta); capaRuta = null; }
+  capaRuta = L.layerGroup().addTo(plano);
+
+  const puntos = datos.puntos;
+  let notables = 0;
+  if (puntos.length > 1) {
+    L.polyline(puntos.map((p) => [p.lat, p.lon]),
+               { color: "#0b62d0", weight: 4, opacity: 0.85 }).addTo(capaRuta);
+  }
+  const inicio = puntos[0];
+  const fin = puntos[puntos.length - 1];
+  L.circleMarker([inicio.lat, inicio.lon], { radius: 9, color: "#0f5c37", fillColor: "#177245",
+    fillOpacity: 1, weight: 2 })
+    .addTo(capaRuta)
+    .bindPopup("<b>Salida</b><br>" + escaparHtml(etiquetaDePunto(inicio)));
+  if (puntos.length > 1) {
+    L.circleMarker([fin.lat, fin.lon], { radius: 9, color: "#8c1d18", fillColor: "#b3261e",
+      fillOpacity: 1, weight: 2 })
+      .addTo(capaRuta)
+      .bindPopup("<b>Llegada</b><br>" + escaparHtml(etiquetaDePunto(fin)));
+  }
+  for (const p of puntos) {
+    if (!MOTIVOS[p.motivo]) continue;
+    if (notables >= TOPE_MARCAS_MAPA) break;
+    notables++;
+    const m = L.circleMarker([p.lat, p.lon], { radius: 6, color: "#7a3b00", fillColor: "#e8a33d",
+      fillOpacity: 0.95, weight: 1.5 }).addTo(capaRuta);
+    m.bindPopup("<b>" + p.motivo + " (" + MOTIVOS[p.motivo] + ")</b><br>" + escaparHtml(etiquetaDePunto(p)));
+    if (plano.getZoom() >= 13) {
+      m.bindTooltip(p.motivo, { permanent: true, direction: "top", className: "etiquetaPunto" });
+    }
+  }
+  return notables;
+}
+
+function etiquetaDePunto(p) {
+  const partes = [];
+  if (p.iso) partes.push(p.iso.replace("T", " ").replace("Z", " UTC"));
+  if (Number.isFinite(p.spd)) partes.push(p.spd.toFixed(1) + " km/h");
+  if (Number.isFinite(p.crs)) partes.push("rumbo " + p.crs + "º");
+  if (Number.isFinite(p.alt)) partes.push(p.alt + " m");
+  if (MOTIVOS[p.motivo]) partes.push("motivo " + p.motivo + " (" + MOTIVOS[p.motivo] + ")");
+  return partes.join(" · ") || "sin datos";
+}
+
+function ponerMarcaActual(texto) {
+  const L = window.L;
+  if (!mapa || !posicionViva) return;
+  if (marcaActual) mapa.removeLayer(marcaActual);
+  const quien = posicionViva.de || "sin indicativo";
+  const esElNodo = posicionViva.propio
+    ? "Es el nodo (el indicativo de arriba)."
+    : "OJO: es otra estacion, no el indicativo de arriba.";
+  marcaActual = L.circleMarker([posicionViva.lat, posicionViva.lon],
+    { radius: 9, color: "#0a4fa8", fillColor: "#3d8bff", fillOpacity: 1, weight: 3 })
+    .addTo(mapa)
+    .bindPopup("<b>El nodo, ahora</b><br>" + escaparHtml(quien) + "<br>" +
+               escaparHtml(texto) + "<br>" + escaparHtml(esElNodo))
+    .bindTooltip("ahora", { permanent: true, direction: "top", className: "etiquetaActual" });
+}
+
+// Guarda la ultima posicion oida por Bluetooth (de la trama del propio nodo).
+function alTenerPosicion(pos, origen) {
+  posicionViva = pos;
+  if (!mapa) return;   // sin mapa abierto no hay nada que pintar todavia
+  if (refrescoPendiente) return;
+  refrescoPendiente = true;
+  setTimeout(() => {
+    refrescoPendiente = false;
+    if (!mapa || !posicionViva) return;
+    ponerMarcaActual("Visto a las " + horaCorta() + " (" + origen + "). " +
+                     "Lat " + posicionViva.lat.toFixed(5) + ", lon " + posicionViva.lon.toFixed(5));
+    notaDeMapa("Ultima posicion del nodo recibida a las " + horaCorta() + ".");
+  }, 1500);
+}
+
+function notaDeMapa(texto) {
+  ponerEstadoMapa(texto);
+}
+
+// --- sacar la posicion de una linea APRS ya traducida ----------------------
+
+// "EA2OY-7>APZFKT,WIDE1-1:!3000.00S/14000.00W>..." -> {lat, lon} o null.
+// Se admiten las dos formas de APRS: la normal (grados y minutos) y la comprimida.
+function posicionDeTexto(info) {
+  if (!info || !info.length) return null;
+  // Se prueban las dos formas de APRS y se devuelve la que valga: una latitud sin
+  // su longitud (o al reves) no sirve para nada, asi que no corta la otra prueba.
+  let m = RE_POSICION.exec(info);
+  if (m) {
+    const latMin = parseFloat(m[3]), lonMin = parseFloat(m[7]);
+    if (isFinite(latMin) && isFinite(lonMin)) {   // si no, la posicion viene borrosa
+      let lat = parseInt(m[2], 10) + latMin / 60;
+      let lon = parseInt(m[6], 10) + lonMin / 60;
+      if (m[4] === "S") lat = -lat;
+      if (m[8] === "W") lon = -lon;
+      return { lat: lat, lon: lon, simbolo: m[5] };
+    }
+  }
+  m = RE_COMP.exec(info);
+  if (m) {
+    const a = base91Numero(m[3]), b = base91Numero(m[4]);
+    if (a === null || b === null) return null;
+    const lat = 90 - a / 380926;
+    const lon = -180 + b / 190463;
+    if (!isFinite(lat) || !isFinite(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+    return { lat: lat, lon: lon, simbolo: m[5] };
+  }
+  return null;
+}
+
+function base91Numero(cuatro) {
+  let n = 0;
+  for (let i = 0; i < 4; i++) {
+    const c = cuatro.charCodeAt(i) - 33;
+    if (c < 0 || c > 90) return null;
+    n = n * 91 + c;
+  }
+  return n;
+}
+
+// Busca en una linea ya traducida ("SRC>DST,RUTA:info") la posicion del nodo.
+function posicionEnLinea(linea) {
+  const corte = linea.indexOf(":");
+  if (corte <= 0) return null;
+  const cabecera = linea.slice(0, corte);
+  const info = linea.slice(corte + 1);
+  const mayor = cabecera.indexOf(">");
+  const origen = (mayor > 0 ? cabecera.slice(0, mayor) : cabecera).toUpperCase();
+  const quiero = (campoIndicativo.value || "").trim().toUpperCase();
+  const p = posicionDeTexto(info);
+  if (!p) return null;
+  p.de = origen;
+  p.propio = !!quiero && origen === quiero;
+  return p;
+}
+
+// --- el boton "Ver en el mapa" ---------------------------------------------
+
+async function verEnElMapa() {
+  cajaAvisoMapa.className = "aviso info";
+  cajaAvisoMapa.textContent = "Preparando el mapa: bajo la libreria (hace falta internet)...";
+  ponerEstadoMapa("Cargando el mapa...");
+  btnMapa.disabled = true;
+
+  let L;
+  try {
+    L = await cargarLeaflet();
+  } catch (e) {
+    btnMapa.disabled = false;
+    falloDelMapa();
+    return;
+  }
+  btnMapa.disabled = false;   // ya se puede volver a pedir el mapa aunque falle lo de abajo
+
+  // Siempre se lee el registro otra vez: asi el mapa ensena lo que hay ahora en
+  // el nodo y no un viaje viejo. Si el puerto ya estaba autorizado, esto no pide
+  // ningun clic de mas.
+  const lineas = await volcarRegistro();
+  if (lineas === null) {
+    cajaAvisoMapa.className = "aviso err";
+    cajaAvisoMapa.textContent = "No he podido leer el registro del nodo, asi que no hay viaje que " +
+      "pintar. La culpa esta en el aviso rojo de la seccion del registro de viaje.";
+    ponerEstadoMapa("Sin datos del viaje.");
+    return;
+  }
+  const datos = analizarRegistro(lineas);
+  if (!datos.puntos.length) {
+    cajaAvisoMapa.className = "aviso err";
+    cajaAvisoMapa.textContent = "No he podido pintar nada: el registro del nodo trae " + lineas.length +
+      " linea(s), pero ninguna es una posicion (\"TX TRK\"). El mapa no se ha abierto porque " +
+      "estaria vacio y no se sabria por que. Las descargas de GPX y KML tampoco tendrian datos.";
+    ponerEstadoMapa("El registro no trae posiciones.");
+    log("AVISO: no abro el mapa porque el registro no trae ninguna posicion.", "warn");
+    return;
+  }
+
+  cajaMapa.className = "";
+  cajaAvisoMapa.className = "aviso info";
+  if (!mapa) {
+    mapa = L.map("mapaCaja", { zoomControl: true, attributionControl: true });
+    L.tileLayer(TESELAS, { maxZoom: 19, attribution: ATRIBUCION }).addTo(mapa);
+    log("Mapa creado con teselas de OpenStreetMap.", "sys");
+  }
+  ultimosPuntos = datos.puntos;
+  const esquinas = L.latLngBounds(datos.puntos.map((p) => [p.lat, p.lon]));
+  mapa.fitBounds(esquinas, { padding: [24, 24], maxZoom: 16 });
+  const notables = dibujarViaje(datos);
+
+  let texto = "Viaje pintado: " + datos.puntos.length + " punto(s), " + notables +
+              " motivo(s) marcado(s) (" + LEYENDA_MOTIVOS + ")";
+  if (posicionViva) {
+    ponerMarcaActual("Ultima posicion recibida por Bluetooth a las " + horaCorta() + ". " +
+                     "Lat " + posicionViva.lat.toFixed(5) + ", lon " + posicionViva.lon.toFixed(5));
+    texto += ". La marca azul \"ahora\" es la ultima posicion oida por Bluetooth.";
+  } else {
+    texto += ". Cuando el nodo mande una posicion por Bluetooth, saldra aqui como marca azul " +
+             "\"ahora\" (indicativo puesto arriba: " + (campoIndicativo.value || "ninguno") + ").";
+  }
+  cajaAvisoMapa.textContent = texto + ".";
+  btnCentrar.disabled = false;
+  ponerEstadoMapa("Mapa listo (" + datos.puntos.length + " puntos).");
+  log("Mapa: " + texto + " " + textoDeViaje(datos.puntos, datos.eventos) + ".", "sys");
+}
+
+function centrarEnRuta() {
+  if (!mapa || !ultimosPuntos.length) return;
+  log("Centro el mapa en la ruta.", "sys");
+  mapa.fitBounds(window.L.latLngBounds(ultimosPuntos.map((p) => [p.lat, p.lon])),
+                 { padding: [24, 24], maxZoom: 16 });
+}
+
+/* ============================ 10. arranque ============================== */
+
+btnConectar.addEventListener("click", conectar);
+btnReconectar.addEventListener("click", reconectarSinLista);
+btnOlvidar.addEventListener("click", () => {
+  const antes = leerDato(CLAVE_DISPOSITIVO);
+  borrarDato(CLAVE_DISPOSITIVO);
+  dispositivoConocido = null;
+  btnReconectar.disabled = true;
+  btnOlvidar.disabled = true;
+  log("Has pedido olvidar el aparato apuntado" + (antes ? " (id " + antes + ")" : "") +
+      ". La proxima vez, Conectar volvera a abrir la lista.", "sys");
+  mostrarAviso("Aparato olvidado. Pulsa Conectar y elige el nodo en la lista.", "info");
+});
+btnDesconectar.addEventListener("click", async () => {
+  log("Desconectando por tu cuenta.", "sys");
+  await cerrarConexion();
+  mostrarAviso("Desconectado.", "info");
+});
+btnEnviar.addEventListener("click", enviarTodo);
+cajaTexto.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    enviarTodo();
+  }
+});
+$("btnEjemplo").addEventListener("click", () => {
+  cajaTexto.value = "EA2OY-7>APZFKT,WIDE1-1:>prueba desde el navegador";
+  cajaTexto.focus();
+});
+$("btnLimpiar").addEventListener("click", () => {
+  panel.innerHTML = "";
+  lineasPintadas = 0;
+  log("Pantalla limpia (los ficheros del servidor siguen igual).", "sys");
+});
+
+// --- registro de viaje (USB) ---
+btnGpx.addEventListener("click", () => descargarViaje("gpx"));
+btnKml.addEventListener("click", () => descargarViaje("kml"));
+btnMapa.addEventListener("click", verEnElMapa);
+btnCentrar.addEventListener("click", centrarEnRuta);
+btnCerrarPuerto.addEventListener("click", () => {
+  if (descargaEnCurso) {
+    log("Aviso: hay una descarga en marcha; no cierro el puerto todavia.", "warn");
+    return;
+  }
+  cerrarPuertoSerie(true);
+});
+campoIndicativo.addEventListener("change", () => {
+  const v = (campoIndicativo.value || "").trim().toUpperCase();
+  campoIndicativo.value = v;
+  guardarDato(CLAVE_INDICATIVO, v);
+  log("Indicativo del nodo para el mapa: " + (v || "(ninguno)") + ".", "sys");
+});
+
+// --- como esta la pagina antes de tocar nada ---
+
+if (!navigator.bluetooth) {
+  log("Aviso: este navegador no tiene Web Bluetooth. Hace falta Chrome o Edge.", "err");
+  mostrarAviso("Este navegador no sabe hablar por Bluetooth. Abre esta direccion con Chrome " +
+               "o con Edge.", "err");
+} else {
+  log("Pagina lista. El navegador si tiene Web Bluetooth. Pulsa Conectar y elige el nodo.", "sys");
+}
+if (location.protocol !== "http:" && location.protocol !== "https:") {
+  mostrarAviso("Esta pagina se ha abierto como fichero, y asi el navegador no deja usar " +
+               "Bluetooth ni el cable USB. Abrela desde la direccion http://localhost:8099/ " +
+               "que imprime el servidor.", "err");
+}
+if (hayWebSerial()) {
+  log("El navegador si sabe hablar por el cable USB (WebSerial): el registro de viaje se puede " +
+      "descargar y ver en el mapa.", "sys");
+} else {
+  log("Aviso: este navegador no tiene WebSerial, asi que el registro de viaje por USB no " +
+      "funcionara (hace falta Chrome o Edge).", "warn");
+  ponerAvisoViaje("Este navegador no sabe hablar por el cable USB, asi que no puedo pedirle el " +
+    "registro de viaje al nodo. Abre esta misma direccion con Chrome o con Edge.", "warn");
+}
+
+// Indicativo del nodo (para el punto "ahora" del mapa).
+{
+  const guardado = leerDato(CLAVE_INDICATIVO);
+  if (guardado) campoIndicativo.value = guardado;
+}
+
+// Lo primero de todo: ver si el navegador ya conoce el nodo, para poder ofrecer
+// "Reconectar" sin abrir ninguna lista y sin ningun clic de mas.
+(async function mirarAparatosConocidos() {
+  // Los dos empiezan apagados en el HTML; se encienden solo si hay nodo conocido.
+  btnReconectar.disabled = true;
+  btnOlvidar.disabled = true;
+  if (!navigator.bluetooth) {
+    log("SIN aparato conocido: no hay Web Bluetooth, asi que no puedo reconectar sin lista.", "warn");
+    return;
+  }
+  if (typeof navigator.bluetooth.getDevices !== "function") {
+    log("SIN reconexion automatica: este navegador no tiene getDevices(), asi que no puede " +
+        "recordar el nodo. Habra que pulsar Conectar (con clic) cada vez. En Chrome o Edge " +
+        "actualizados si funciona.", "warn");
+    return;
+  }
+  const r = await buscarDispositivoConocido(false);
+  if (!r.ok) {
+    btnReconectar.disabled = true;
+    return;
+  }
+  if (!r.device) {
+    const apuntado = leerDato(CLAVE_DISPOSITIVO);
+    if (apuntado) {
+      log("Habia un aparato apuntado (id " + apuntado + "), pero el navegador ya no lo recuerda. " +
+          "Se olvida: la proxima vez, Conectar abrira la lista.", "warn");
+      borrarDato(CLAVE_DISPOSITIVO);
+      mostrarAviso("El navegador no recuerda ya el nodo que se eligio antes. Pulsa Conectar y " +
+                   "vuelve a elegirlo: a partir de ahi, Reconectar ira solo.", "warn");
+    } else {
+      log("SIN aparato conocido: el navegador no tiene ningun nodo autorizado. Hay que pulsar " +
+          "Conectar (hace falta el clic) y elegirlo en la lista; despues se apuntara para " +
+          "reconectar sin lista.", "sys");
+    }
+    return;
+  }
+  btnReconectar.disabled = false;
+  btnOlvidar.disabled = false;
+  log("Listo para reconectar SIN lista: el navegador ya tiene autorizado \"" +
+      (r.device.name || "sin nombre") + "\" (id " + (r.device.id || "sin id") + "). " +
+      "Pulsa Reconectar y no hara falta ninguna lista.", "sys");
+  notaInfo("Nodo recordado: " + (r.device.name || "sin nombre") + ". Reconectar no pide lista.");
+})();
+</script>
+</body>
+</html>

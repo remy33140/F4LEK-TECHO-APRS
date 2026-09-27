@@ -1,0 +1,1484 @@
+// ble_kiss.cpp ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ENLACE BLUETOOTH LE: Nordic UART Service como segundo puerto serie.
+// Ver ble_kiss.h: el porque, la causa raiz que tuvo el Bluetooth apagado, y el contrato de
+// cada funcion. Aqui esta solo la implementacion.
+//
+// HILOS: la libreria Bluefruit corre sus propios tasks de FreeRTOS, asi que el callback de
+// eventos del SoftDevice NO hace nada mas que apuntar lo que ha pasado en banderas simples.
+// Toda linea de registro, todo aviso en la pantalla y todo lo que toca la flash se hace en
+// `bleLoop()`, desde el bucle principal.
+// License: GPL-3.0
+
+#include "ble_kiss.h"
+
+#ifdef BLE_PRUEBA_ARRANQUE_A_MANO
+/* ★★★ LA DECLARACION, AQUI Y NO MAS ABAJO (b50, 2026-09-17) ★★★
+ * `usb_softdevice_pre_enable()` esta definida en el core de Adafruit como **C++** (no lleva
+ * `extern "C"`), asi que su simbolo va "mangled": `_Z25usb_softdevice_pre_enablev`. Los dos
+ * errores que costo entenderlo:
+ *   1) declararla dentro de `extern "C"` -> el enlazador busca `usb_softdevice_pre_enable` y
+ *      no lo encuentra ("undefined reference");
+ *   2) declararla **despues** de un `namespace { ... }` en este fichero -> el compilador le da
+ *      enlace INTERNO y el enlazador tampoco la encuentra.
+ * Comprobado con `arm-none-eabi-nm`: en `libBluefruit52Lib.a` aparece como `T
+ * _Z25usb_softdevice_pre_enablev` (definida, enlace externo). Poniendola AL PRINCIPIO del
+ * fichero, con enlace externo, el enlazador la resuelve.
+ * Es solo para la prueba b50 (arrancar la SoftDevice a mano, como el banco). */
+
+/* El manejador de fallo del SoftDevice, PROPIO (el del core es `static` y no se puede usar).
+ * Mismo patron que el del banco: recibe el fallo, lo apunta y **retorna** (si retorna, el
+ * SoftDevice reinicia; por eso se apunta antes). */
+static void bleFalloSD(uint32_t id, uint32_t pc, uint32_t info) {
+  (void)pc;
+  (void)info;
+  NRF_POWER->GPREGRET2 = (0xB5u << 8) | (id & 0xFFu);   // marca de "fallo de la SD"
+}
+#endif
+
+#include <Arduino.h>
+#include <bluefruit.h>
+#include <nrf.h>
+#include <nrfx_power.h>  // NRFX_POWER_USB_EVT_* (los eventos de VBUS que espera TinyUSB)
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "ax25.h"  // AX25_MAX_INFO (tamano de la trama que se le ofrece al huesped)
+#include "diag.h"
+#include "display.h"
+#include "flog.h"
+#include "protocol.h"  // olvidaLineaBle(): la linea a medias del huesped, al desconectar
+#include "store.h"     // storeSave(): para DESHACER el bleEnabled si el arranque se cae (b38)
+#include "tnc.h"
+#include "usb_lector.h"
+
+/* ================= EL USB QUE SE QUEDO A MEDIAS (ver ble_kiss.h) =================
+   `Bluefruit.begin()` empieza desmontando el USB de TinyUSB para cederle el periferico
+   POWER al SoftDevice, y solo lo devuelve si el SoftDevice ha arrancado. Si no arranca (el
+   caso medido: SoftDevice no valido, `sd_softdevice_enable()` = 4097), el puerto se queda
+   ENUMERADO Y MUDO y el nodo sin consola: exactamente el "nodo bloqueado" del 2026-09-13.
+
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ ESTO YA NO ES EL ARREGLO PRINCIPAL: ES LA ULTIMA RED (2026-09-17, b26) ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+   Medido en la placa del operador con el b25: con `bleEnabled=1` y un SoftDevice que no
+   arranca, el nodo entra en un ir y venir del USB (el puerto se monta y se desmonta sin
+   parar). O sea que **esta recuperacion NO basta** y no se puede confiar en ella.
+   Lo que manda ahora es `softdevicePareceValido()`, que mira el SoftDevice ANTES de
+   dejar que nadie le toque el USB: si no es valido, `Bluefruit.begin()` NO SE LLAMA
+   NUNCA y el puerto no se toca. Esto de aqui se queda solo por si el SoftDevice pasa la
+   comprobacion y falla despues por otra cosa.
+
+   El desmontaje y el montaje son dos funciones del nucleo sin cabecera publica, asi que se
+   declaran aqui: es la unica forma de terminar lo que el nucleo dejo a medias, y es
+   preferible a parchear el framework (que se actualiza por su cuenta).
+
+   ★ OJO CON EL `extern "C"` DE ESTAS TRES (corregido el 2026-09-17, b50): en el core de
+     Adafruit **NO son C**: son C++ (estan dentro de un bloque sin `extern "C"`), asi que su
+     simbolo va "mangled" (`_Z25usb_softdevice_pre_enablev`, `_Z26usb_softdevice_post_enablev`).
+     Declararlas dentro de un `extern "C"` (como estaban aqui) hace que el enlazador busque el
+     nombre "de C" y **no lo encuentre**: "undefined reference to `usb_softdevice_pre_enable'".
+     Comprobado con `arm-none-eabi-nm` sobre `libBluefruit52Lib.a`. Por eso ahora solo se
+     declara la que hace falta, **fuera** de `extern "C"` y **fuera** del namespace anonimo. */
+extern "C" {
+/* Esta SI es C en el core (`tusb_hal_nrf_power_event`, del TinyUSB): el manejador de los
+ * eventos de VBUS que usa `usbRearma()`. Es la unica de las tres que se quedo aqui. */
+void tusb_hal_nrf_power_event(uint32_t event);
+}
+
+/* ================= LA COMPROBACION QUE EVITA TOCAR EL USB (2026-09-17, b26) =============
+
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ EL PROBLEMA, MEDIDO EN LA PLACA CON EL b25 ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+   Con `bleEnabled=1` guardado y un SoftDevice que no arranca, el nodo se queda dando
+   vueltas: el USB se monta y se desmonta sin parar y no hay consola. La recuperacion
+   (`usbRearma()`) NO lo arregla. O sea: **basta con que `Bluefruit.begin()` llegue a
+   desmontar el USB para perder el nodo**, aunque el SoftDevice falle.
+
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ LA SOLUCION: PREGUNTAR ANTES DE TOCAR NADA ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+   El SoftDevice deja su ficha en la flash, y el propio cargador la lee (es lo que imprime
+   `INFO_UF2.TXT` como "SoftDevice: S140 version 7.2.0"). Los offsets son OFICIALES, estan en
+   `nrf_sdm.h`, y ojo con la trampa que costo dos diagnosticos falsos en este proyecto: el
+   offset va **relativo a la base del SoftDevice, que empieza despues del MBR**:
+       #define SOFTDEVICE_INFO_STRUCT_OFFSET  (0x2000)   // relativo a la base del SD
+       #define SOFTDEVICE_INFO_STRUCT_ADDRESS (SOFTDEVICE_INFO_STRUCT_OFFSET + MBR_SIZE)
+       #define SD_FWID_OFFSET                 (SOFTDEVICE_INFO_STRUCT_OFFSET + 0x0C)
+       #define SD_FWID_GET(baseaddr)          (*((uint16_t *)((baseaddr) + SD_FWID_OFFSET)))
+   O sea: **el `fwid` esta en 0x1000 + 0x2000 + 0x0C = 0x300C** (los defines estan mas abajo)
+   y se lee con una carga normal de memoria. No hace falta llamar a NINGUN SVC, no se enciende
+   nada, no se toca el USB y no se reserva RAM: es una lectura y ya esta. Por eso se puede
+   hacer ANTES de arriesgar nada.
+
+   El valor esperado lo pone la definicion de placa del proyecto (`sd_fwid` en
+   `boards\*.json`) y llega por `-DSD_ESPERADO_FWID` desde `platformio.ini`:
+       0x00B6 -> S140 6.1.1 (Faketec y T-Echo "normales")
+       0x0123 -> S140 7.x   (T-Echo con SoftDevice 7)
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ el `0x0123` es el MISMO numero que usa el framework de Adafruit para sus placas con S140
+     v7 (`boards.txt`: `pca10100.menu.softdevice.s140v7.build.sd_fwid=0x0123`) y el que pide el
+     paquete DFU en `--sd-req`. Antes ponia `0x0101`, que **no es el fwid de ninguna S140**:
+     era otro error de este mismo codigo.
+
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ EL DATO QUE LO CONFIRMA, leido de los hex OFICIALES (2026-09-17, `tools\lee_hex.py`):
+     offset 0x3000 -> S140 7.3.0: ficha 44 B, SD_size=0x27000, fwid=0x0123
+     offset 0x3000 -> S140 6.1.1: ficha 44 B, SD_size=0x26000, fwid=0x00B6
+   Y en el offset viejo (0x200C) los dos devuelven codigo ARM (`0xD902` y `0xE002`), que es lo
+   que este proyecto tomo por chips averiados.
+
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ LIMITE HONESTO DE ESTA COMPROBACION: dice "en la flash hay un SoftDevice de la version
+     que este build espera". NO dice que vaya a arrancar (no se puede saber sin arrancarlo).
+     Por eso el camino de fallo de mas abajo sigue existiendo y sigue siendo prudente. */
+#ifndef SD_ESPERADO_FWID
+// Valor de socorro si alguien compila a mano: el de la S140 v6 (el de las Faketec).
+#define SD_ESPERADO_FWID 0x00B6
+#endif
+
+/* ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ LA DIRECCION DE LA FICHA, CORREGIDA (2026-09-17, b29) ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+   Aqui ponia `0x2000` a secas y **estaba mal**. El propio `nrf_sdm.h` lo dice con todas las
+   letras (nrf_sdm.h de la S140 7.3.0, lineas 97-103):
+
+       SOFTDEVICE_INFO_STRUCT_OFFSET  (0x2000)
+       "Defines the SoftDevice Information Structure location (address) as an offset **from
+        the start of the SoftDevice (without MBR)**"
+       SOFTDEVICE_INFO_STRUCT_ADDRESS (SOFTDEVICE_INFO_STRUCT_OFFSET + MBR_SIZE)
+
+   O sea: el offset es **relativo a la base del SoftDevice**, y como el SoftDevice va justo
+   encima del MBR, la direccion ABSOLUTA es `MBR_SIZE + 0x2000`. Con `MBR_SIZE = 0x1000`:
+
+       ficha -> 0x1000 + 0x2000      = 0x3000
+       fwid  -> 0x1000 + 0x2000+0x0C = 0x300C   <- ESTA es la buena
+
+   Y lo que habia en `0x200C` (la direccion vieja) es **codigo ARM del propio SoftDevice**, no
+   una ficha: de ahi salian los dos numeros que este proyecto tomo por averias. Comprobado en
+   los hex OFICIALES de los dos SoftDevices (ver `tools\lee_hex.py` y `tools\prueba_sonda_softdevice.py`):
+
+       offset 0x2000 -> S140 7.3.0: fwid=0xD902 | S140 6.1.1: fwid=0xE002   (los dos, CODIGO)
+       offset 0x3000 -> S140 7.3.0: ficha 44 B, SD_size=0x27000, fwid=0x0123
+                       S140 6.1.1: ficha 44 B, SD_size=0x26000, fwid=0x00B6
+
+   `0xE002` fue el "caso medido" del 2026-09-13 y `0xD902` el de la placa del operador el
+   2026-09-17: **los dos eran el mismo error de este codigo**, no un chip averiado. */
+#define SD_MBR_DIR 0x1000u     // MBR_SIZE (nrf_sdm.h): el SoftDevice empieza aqui
+#define SD_INFO_DIR (SD_MBR_DIR + 0x2000u)  // SOFTDEVICE_INFO_STRUCT_ADDRESS
+#define SD_FWID_DIR (SD_INFO_DIR + 0x0Cu)   // SD_FWID_OFFSET
+
+uint16_t softdeviceFwidLeido() {
+  return *(volatile uint16_t *)SD_FWID_DIR;
+}
+
+/* ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ LA FICHA ENTERA, PARA CUANDO EL `fwid` NO BASTA (2026-09-17, b28).
+   En la placa del operador el `fwid` sale `0xD902` (dos lecturas, la misma) y ese numero no
+   es el de ninguna S140 que el proyecto conozca. Con solo el `fwid` no se puede distinguir
+   entre "hay un SoftDevice de otra version" y "ahi no hay SoftDevice, hay basura": las dos
+   cosas se ven igual. Los demas campos SI las distinguen, y se leen igual de barato (misma
+   carga de flash, offsets oficiales de `nrf_sdm.h`):
+
+       0x2000 tamano de la ficha (SD_INFO_STRUCT_SIZE_GET)
+       0x2008 SD_SIZE_OFFSET   -> tamano real del SoftDevice en bytes
+       0x200C SD_FWID_OFFSET   -> el `fwid` (el que se comprueba)
+       0x2010 SD_ID_OFFSET     -> el `id` (chip para el que se construyo)
+       0x2014 SD_VERSION_OFFSET-> la version: M.mmm.bbb en un solo uint32
+
+   Si los campos de detras del `fwid` no tienen sentido (por ejemplo una version major 0 o un
+   tamano imposible), entonces no hay ficha: es basura. Si la tienen, hay un SoftDevice de
+   verdad y lo unico que pasa es que NO es el que este firmware espera. */
+
+uint8_t softdeviceTamanoFicha() {
+  return *(volatile uint8_t *)(SD_INFO_DIR + 0x08u);   // SD_INFO_STRUCT_SIZE_OFFSET
+}
+
+uint16_t softdeviceIdLeido() {
+  return *(volatile uint16_t *)(SD_INFO_DIR + 0x10u);  // SD_ID_OFFSET
+}
+
+uint32_t softdeviceVersionLeida() {
+  return *(volatile uint32_t *)(SD_INFO_DIR + 0x14u);  // SD_VERSION_OFFSET
+}
+
+// Tamano real del SoftDevice en bytes: es un campo de la ficha (SD_SIZE_OFFSET), no un
+// calculo. Si sale 0 o un disparate (mas que la flash del chip), la ficha no vale.
+uint32_t softdeviceTamanoLeido() {
+  return *(volatile uint32_t *)(SD_INFO_DIR + 0x08u);  // SD_SIZE_OFFSET
+}
+
+// La version, desglosada como la desempaqueta SD_VERSION_GET en `nrf_sdm.h`
+// (M = bytes altos, mmm = byte medio, bbb = dos bytes bajos).
+uint32_t softdeviceVersionParte(int cual) {
+  const uint32_t v = softdeviceVersionLeida();
+  if (cual == 0) return (v >> 24) & 0xFFu;
+  if (cual == 1) return (v >> 16) & 0xFFu;
+  return v & 0xFFFFu;
+}
+
+/* ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¿Hay en la flash un SoftDevice de verdad?
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ ESTO YA NO EXIGE EL NUMERO EXACTO (2026-09-17, b31) ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ y el por que esta MEDIDO:
+   con la direccion ya corregida, la placa del operador contesto `ficha tamano 0 | id 0x008C |
+   tamano del SD 159744 B | fwid 0x0100`. O sea: **hay una S140 valida**, con su identificador
+   y su tamano coherentes, pero de una REVISION distinta de la que este build espera
+   (`0x0123`). Exigir el numero exacto rechazaba un SoftDevice que probablemente arranca: la
+   pregunta buena no es "ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¿es exactamente el mio?" sino **"ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¿hay un SoftDevice que se pueda
+   intentar arrancar?"**, y de eso se encarga `sd_softdevice_enable()`.
+
+   ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Y LA DEFENSA NO SE PIERDE: lo que hay que cazar es una flash SIN SoftDevice (borrada, a
+   cero) o un trozo de codigo leido por error. Eso se distingue por la ficha, no por el `fwid`:
+   un fragmento de codigo no trae un `id` en el rango del SoftDevice ni un tamano creible, y
+   ademas su primer byte (el tamano de la ficha) no cae entre 16 y 64. Los dos casos que este
+   proyecto tomo por averias (`0xE002` y `0xD902`) se cazan igual por esa via. */
+bool softdevicePareceValido() {
+  /* ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ ESTA COMPROBACION ES LA RED DE SEGURIDAD, ASI QUE OTRA VEZ ES ESTRICTA (b33) ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+     Historia, para que no se repita: el b30/b31 la relajaron (bastaba con que hubiera
+     SoftDevice) y **el b32 dejo el nodo en bucle de reinicios**: intentar arrancar un
+     SoftDevice que no es el que espera la aplicacion cuelga el nodo. Lo aprendido:
+       1) la direccion buena es 0x300C (MBR 0x1000 + 0x2000 + 0x0C), no 0x200C;
+       2) el `fwid` esperado es el de la placa, no uno inventado;
+       3) **si el `fwid` no es EXACTAMENTE el esperado, NO se arranca** ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â el nodo se queda
+          sin Bluetooth pero vivo, que es siempre mejor que un bucle.
+     Y la huella (id del SoftDevice + tamano creible) sigue comprobrandose para no creerse un
+     trozo de codigo leido por error ni una flash borrada. */
+  const uint32_t tam = softdeviceTamanoLeido();
+  if (tam < 0x4000u || tam > 0x80000u) return false;        // ni un SoftDevice ni la flash entera
+  const uint32_t id = softdeviceIdLeido();
+  if ((id & 0xFFFFFF00u) != 0u || (id & 0xFFu) != 0x8Cu) return false;  // el id del SoftDevice (S140)
+  const uint16_t fwid = softdeviceFwidLeido();
+  if (fwid == 0x0000u || fwid == 0xFFFFu) return false;     // cero o flash virgen
+  return fwid == (uint16_t)SD_ESPERADO_FWID;
+}
+
+// ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¿El `fwid` es EXACTAMENTE el que espera este build? No decide si se arranca (eso lo dice la
+// ficha), pero se informa: si no coincide, es que la placa lleva otra revision del SoftDevice.
+bool softdeviceFwidEsElEsperado() {
+  return softdeviceFwidLeido() == (uint16_t)SD_ESPERADO_FWID;
+}
+
+
+// El protocolo se engancha aqui: sus bytes entran en el MISMO receptor de lineas que el USB.
+void bleHostFeed(const uint8_t *datos, size_t n);
+
+
+namespace {
+
+/* ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ LA MEMORIA DEL ARRANQUE, EN LOS REGISTROS `GPREGRET` (b38, 2026-09-17) ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+ *
+ * EL PROBLEMA, dicho por el operador y con razon en las dos partes:
+ *   1) "aunque el nodo recuerde el fallo, va a entrar en bootloop y no vas a poder consultar
+ *      ese fallo" -> **la memoria sola no basta**;
+ *   2) "el puerto esta conectando y desconectando tambien en bucle" -> imprimir mas no sirve.
+ *
+ * LA SOLUCION, con las dos cosas: **recordar Y NO REINTENTAR**.
+ *   - Antes de arrancar el Bluetooth se apunta en `GPREGRET` en que paso se va.
+ *   - Cuando el Bluetooth queda ARRIBA, se borra la marca.
+ *   - En el arranque siguiente: si **no hay marca**, fue un reinicio normal (o un reinicio
+ *     pedido por el operador con el Bluetooth ya funcionando) -> se arranca el Bluetooth.
+ *     Si **hay marca**, el arranque anterior se murio con el Bluetooth a medias ->
+ *     **NO SE REINTENTA**, se cuenta lo que se sabe y el nodo se queda VIVO.
+ *   Asi el bucle se corta solo en la segunda vuelta y **el fallo SI se puede consultar**, que
+ *   es justo lo que hacia falta.
+ *
+ * ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ POR QUE `GPREGRET` Y NO RAM: los registros `GPREGRET` (NRF_POWER) **no son RAM**: el chip
+ *   los conserva al reiniciar. Cero riesgo (no hay que tocar el guion de enlazado, que ademas
+ *   ya se intento y el enlazador no lo admite: ver la nota de `variants\techo\*.ld`), y no
+ *   dependen de que ninguna rutina de arranque los respete.
+ *
+ * ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ OJO: hay que leerlos ANTES de que el SoftDevice arranque (despues, NRF_POWER es suyo y no
+ *   se puede tocar). Se leen al principio de `bleAplica()`, que es exactamente el sitio. */
+#define BLE_REG_PASO 0u    // en que paso se iba cuando se murio (0 = nada)
+#define BLE_REG_ISER 1u    // el ISER que habia justo antes de arrancar el SoftDevice
+#define BLE_REG_PREVIO 2u  // el `bleEnabled` que habia ANTES de intentarlo (para deshacerlo)
+#define BLE_REG_ERR 3u     // el ultimo codigo de error del arranque (b43)
+
+/* ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ En este SDK `GPREGRET` y `GPREGRET2` son dos registros SUELOS, no un array (el array
+ *   `GPREGRET[n]` es de la serie nRF52 vieja). El nRF52840 tiene esos dos, y hay que repartir
+ *   cuatro datos (paso, ISER, previo y error), asi que van encajados:
+ *     GPREGRET  -> bits 0..7 el paso | bit 8 el `bleEnabled` previo | bits 9..15 el error
+ *     GPREGRET2 -> el ISER completo
+ *   Asi no se pisa ninguno y cada dato se puede leer por separado. */
+inline void bleRegPon(uint32_t cual, uint32_t valor) {
+  if (cual == BLE_REG_ISER) {
+    NRF_POWER->GPREGRET2 = valor;
+  } else if (cual == BLE_REG_PREVIO) {
+    NRF_POWER->GPREGRET = (NRF_POWER->GPREGRET & ~(1u << 8)) | ((valor & 0x1u) << 8);
+  } else if (cual == BLE_REG_ERR) {
+    NRF_POWER->GPREGRET = (NRF_POWER->GPREGRET & ~(0x7Fu << 9)) | ((valor & 0x7Fu) << 9);
+  } else {
+    NRF_POWER->GPREGRET = (NRF_POWER->GPREGRET & ~0xFFu) | (valor & 0xFFu);
+  }
+}
+inline uint32_t bleRegLee(uint32_t cual) {
+  if (cual == BLE_REG_ISER) return NRF_POWER->GPREGRET2;
+  if (cual == BLE_REG_PREVIO) return (NRF_POWER->GPREGRET >> 8) & 0x1u;
+  if (cual == BLE_REG_ERR) return (NRF_POWER->GPREGRET >> 9) & 0x7Fu;
+  return NRF_POWER->GPREGRET & 0xFFu;
+}
+
+// Los pasos. Se escriben ANTES de dar el paso: si el nodo se cae, el numero dice DONDE.
+enum {
+  PASO_NADA = 0,
+  PASO_SONDA_OK = 1,      // hay SoftDevice y se ha cedido lo reservado
+  PASO_CONFIG = 2,        // entrando en Bluefruit.configPrphConn()
+  PASO_BEGIN_LLAMA = 3,   // llamando a Bluefruit.begin() (AQUI es donde se muere)
+  PASO_BEGIN_SALIO = 4,   // Bluefruit.begin() ha vuelto: el SoftDevice esta ARRIBA
+  PASO_ADVERTISING = 5,   // advertising arrancado
+  PASO_FIN = 6,           // el Bluetooth esta completo
+};
+
+// Nombre del paso, para el registro (nada de numeros sueltos: el operador tiene que entenderlo)
+const char *nombrePaso(uint32_t p) {
+  switch (p) {
+    case PASO_NADA: return "nada";
+    case PASO_SONDA_OK: return "1 sonda ok + reservados cedidos";
+    case PASO_CONFIG: return "2 configPrphConn (MTU)";
+    case PASO_BEGIN_LLAMA: return "3 Bluefruit.begin() EN CURSO";
+    case PASO_BEGIN_SALIO: return "4 begin() ha vuelto (SoftDevice ARRIBA)";
+    case PASO_ADVERTISING: return "5 advertising";
+    case PASO_FIN: return "6 Bluetooth COMPLETO";
+    default: return "?";
+  }
+}
+
+// Ã¢Ëœâ€¦ EL ERROR DEL ULTIMO PASO (b43): un codigo corto (cabe en 7 bits) que se apunta ANTES de dar
+//   el paso, para poder decir DESPUES que llamada fue la que se quejo.
+inline void memApuntaError(uint32_t codigo) {
+  bleRegPon(BLE_REG_ERR, codigo);
+}
+
+// ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ EL DISEÃƒÆ’Ã¢â‚¬ËœO LO PIDIO EL OPERADOR Y ES MEJOR QUE EL MIO (2026-09-17, b38):
+//   "que este el bluetooth apagado, lo enciendes tu a mano, pero que no guarde en flash el
+//    estado de encendido y que grabe ese fallo, y cuando reinicie lo haga con el bluetooth
+//    apagado y puedas consultarlo".
+//   O sea: el encendido NO se guarda (si el nodo se reinicia, vuelve a estar apagado por si
+//   solo), y el fallo queda apuntado para poder consultarlo. Aqui se apunta el paso Y **el
+//   valor que tenia `bleEnabled` antes de intentarlo**, que es lo que permite deshacerlo.
+void memApunta(uint32_t paso) {
+  bleRegPon(BLE_REG_PASO, paso);
+}
+
+/* ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ EL ULTIMO FALLO, GUARDADO PARA QUE SE PUEDA LEER DESPUES (b43).
+ *
+ * PROBLEMA QUE RESUELVE, y es un fallo de diseÃƒÆ’Ã‚Â±o del b42 que se vio en la placa: el arranque
+ * siguiente LIMPIA la marca nada mas empezar (para que el nodo arranque normal), asi que cuando
+ * el operador pide el informe con el comando `ble` **ya no hay nada que contar** y el informe
+ * decia "no hay SoftDevice" ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â que es FALSO: el SoftDevice estaba y el que se murio fue el
+ * intento. Aqui se copia el ultimo fallo a un registro que NO se limpia, para poder contarlo.
+ *
+ * El paso va en el byte alto y el codigo de error en el bajo, los dos en `GPREGRET2` (que ya no
+ * hace falta para el ISER en cuanto la verificacion ha pasado). */
+inline void memGuardaUltimoFallo(uint32_t paso, uint32_t err, uint32_t iser) {
+  NRF_POWER->GPREGRET2 = ((paso & 0xFFu) << 24) | ((err & 0xFFu) << 16) | (iser & 0xFFFFu);
+}
+inline uint32_t memUltimoPaso() { return (NRF_POWER->GPREGRET2 >> 24) & 0xFFu; }
+inline uint32_t memUltimoErr() { return (NRF_POWER->GPREGRET2 >> 16) & 0xFFu; }
+inline uint32_t memUltimoIser() { return NRF_POWER->GPREGRET2 & 0xFFFFu; }
+inline void memOlvidaUltimoFallo() { NRF_POWER->GPREGRET2 = 0; }
+
+// El valor de `bleEnabled` que habia ANTES de intentar arrancar el Bluetooth. Se guarda para
+// poder deshacerlo si el intento se lleva el nodo por delante (ver `bleAplica`).
+inline void memRecuerdaEncendidoPrevio(uint32_t previo) {
+  bleRegPon(BLE_REG_PREVIO, previo);
+}
+
+DigiConfig *gCfg = nullptr;
+
+// Potencia de emision del Bluetooth, en dBm. 0 dBm es el valor de los ejemplos de Adafruit
+// para un nodo de bateria; +4 dBm alarga el alcance y tambien el consumo. Es una constante a
+// proposito (no un ajuste de configuracion): el operador pidio que no se inventaran campos.
+constexpr int8_t kBleTxPowerDbm = 0;
+
+// --- Ultimo error de arranque (comando `ble` y snapshot de diag) -------------
+int gErrArranque = 0;
+// Cierto cuando el Bluetooth NO se arranco A PROPOSITO porque el SoftDevice grabado no es el
+// que este firmware espera. No es un fallo del nodo: es una proteccion (ver bleAplica).
+bool gBloqueadoPorSd = false;
+
+// --- Estado del enlace ------------------------------------------------------
+// ★ b52: distingue el PRIMER intento (el del arranque) de los que pide el operador despues.
+//   En el arranque el Bluetooth NO se enciende solo: ver el por que en `bleAplica`.
+bool gArranqueHecho = false;
+bool gStackUp = false;      // `Bluefruit.begin()` ya se hizo
+bool gServicioUp = false;   // servicio NUS creado y datos de advertising listos
+bool gEnabled = false;      // ultimo valor de cfg.bleEnabled APLICADO
+bool gRequierePin = false;  // el enlace exige PIN (MITM)
+uint16_t gConnHandle = BLE_CONN_HANDLE_INVALID;
+char gPeerAddr[20] = "";
+char gAdvName[30] = "";
+
+// --- PIN de emparejamiento (lo pinta bleLoop, nunca el callback) ------------
+bool gPinEnPantalla = false;
+uint32_t gPinDesdeMs = 0;
+constexpr uint32_t kPinMaxMs = 60000;  // red de seguridad: el aviso no se queda pegado
+
+// --- Banderas que deja el callback del SoftDevice (tarea de BLE) ------------
+// Solo se apunta QUE ha pasado: el texto, la pantalla y la flash son de bleLoop().
+volatile bool gEvtConectado = false;
+volatile bool gEvtDesconectado = false;
+volatile uint8_t gEvtMotivo = 0;
+volatile bool gEvtPin = false;      // el stack nos ha dado un PIN que ensenar
+volatile bool gEvtPidePin = false;  // intento de emparejamiento en marcha
+volatile bool gEvtFinPin = false;   // el intento termino (bien o mal): quitar el aviso
+char gEvtPinTxt[8] = "";
+uint32_t gEvtPidePinMs = 0;
+constexpr uint32_t kEsperaPinMs = 500;  // sin evento de PIN: se ensena el configurado
+
+// --- Contadores (los publica status.ble y el comando `ble`) -----------------
+uint32_t gTrozosIn = 0, gBytesIn = 0, gTrozosOut = 0, gBytesOut = 0, gPerdidos = 0;
+uint32_t gSolicitudes = 0, gPinOk = 0, gPinMal = 0;
+int16_t gUltimoPin = -1;
+
+// --- Nordic UART Service, con los UUID de serie de Nordic -------------------
+/* UART Service: 6E400001-B5A3-F393-E0A9-E50E24DCCA9E
+ * UART RX      : 6E400002-B5A3-F393-E0A9-E50E24DCCA9E   (el huesped escribe ORDENES)
+ * UART TX      : 6E400003-B5A3-F393-E0A9-E50E24DCCA9E   (el nodo manda AVISOS)
+ *
+ * Se usan estas caracteristicas y no `BLEUart` del framework por un motivo concreto:
+ * `BLEUart::begin()` fija los permisos a ABIERTO y ignora los que se le hayan puesto antes
+ * (esta escrito en su codigo: `_rxd.setPermission(SECMODE_NO_ACCESS, SECMODE_OPEN)`), asi
+ * que con BLEUart el PIN seria decorativo: cualquiera podria escribir ordenes sin emparejar.
+ * Con las caracteristicas propias, los permisos se eligen antes de crearlas. */
+BLEService gServicio(BLEUART_UUID_SERVICE);
+BLECharacteristic gTx(BLEUART_UUID_CHR_TXD);
+BLECharacteristic gRx(BLEUART_UUID_CHR_RXD);
+
+/* ================= COLA DE SALIDA (avisos al huesped) =================
+   Un anillo de bytes y COMO MUCHO un aviso por vuelta del bucle, con una pausa corta entre
+   avisos. La cola del SoftDevice es de 4 avisos y el enlace de un movil es mas lento que la
+   radio: si se empujara todo de golpe, el stack rechazaria y se perderia lo que sobra.
+   Los bytes NO salen del anillo hasta que el stack los acepta de verdad, asi que un enlace
+   ocupado reintenta en la vuelta siguiente en vez de perder datos.
+   4096 = el mismo tope que una linea: cabe entera la respuesta mas larga (el `get` de la
+   configuracion, ~1.4 KB) sin trocearla ni descartarla. */
+constexpr size_t kColaSalida = 4096;   // potencia de dos
+constexpr size_t kTrozoMax = 244;      // tope del trozo (MTU 247 - 3)
+constexpr uint32_t kPausaTrozoMs = 6;  // respiro entre avisos
+uint8_t gSal[kColaSalida];
+size_t gSalCab = 0, gSalCola = 0;
+uint32_t gUltimoTrozoMs = 0;
+uint32_t gRechazos = 0;
+
+// --- Entrada: lo que el callback de escritura deja listo para el bucle ------
+// Los bytes del huesped NO se meten en el lector desde la tarea del SoftDevice: se copian
+// aqui y `bleLoop()` los empuja al lector. Asi TODO el parseo ocurre en el bucle principal.
+constexpr size_t kBufEntrada = 1024;
+uint8_t gEnt[kBufEntrada];
+size_t gEntN = 0;
+bool gEntDesbordado = false;
+
+bool hostListo() {
+  if (gConnHandle == BLE_CONN_HANDLE_INVALID) return false;
+  // El CCCD solo se puede escribir por un enlace cifrado con MITM cuando hay PIN (ver
+  // bleArrancaStack), asi que "avisos encendidos" ya prueba que el huesped esta emparejado.
+  return gTx.notifyEnabled(gConnHandle);
+}
+
+uint16_t mtuActual() {
+  if (gConnHandle == BLE_CONN_HANDLE_INVALID) return 0;
+  BLEConnection *c = Bluefruit.Connection(gConnHandle);
+  return (c != nullptr) ? c->getMtu() : 0;
+}
+
+/* ================= EL USB SE REARMA A MANO =================
+   Ver la cabecera del fichero y el bloque de arriba. Se llama SOLO cuando el SoftDevice ha
+   fallado: ahi el nucleo ya ha desmontado el USB y no lo va a volver a montar, porque su
+   montaje vive al final de `Bluefruit.begin()`, en la rama que solo corre si el SoftDevice
+   arranco.
+
+   Que hace falta exactamente, y por que:
+     1) Volver a enganchar el manejador de VBUS de TinyUSB (el que desengancho
+        `usb_softdevice_pre_enable()`): sin el, TinyUSB no se entera nunca de que hay cable.
+        Son las mismas cuatro llamadas que hace `usb_hardware_init()` del nucleo.
+     2) Darle LOS eventos del cable que ya han pasado: con el cable puesto, el de "detectado"
+        se perdio en el desmontaje, y el stack se queda esperando uno que no va a llegar (el
+        puerto no levanta el PULLUP: enumerado y mudo, igual que antes). El de "listo" lo manda
+        `usb_hardware_init()` solo cuando VBUS ya estaba, asi que aqui se replica esa misma
+        comprobacion.
+   Con el cable fuera no se manda ninguno: llegaran solos cuando se enchufe. */
+void alEventoVbus(nrfx_power_usb_evt_t evt) { tusb_hal_nrf_power_event((uint32_t)evt); }
+
+void usbRearma() {
+  const uint32_t reg = NRF_POWER->USBREGSTATUS;
+
+  const nrfx_power_config_t pwrCfg = {0};
+  nrfx_power_init(&pwrCfg);
+  const nrfx_power_usbevt_config_t evtCfg = {.handler = alEventoVbus};
+  nrfx_power_usbevt_init(&evtCfg);
+  nrfx_power_usbevt_enable();
+
+  if ((reg & POWER_USBREGSTATUS_VBUSDETECT_Msk) == 0) return;  // sin cable: nada que rearmar
+  tusb_hal_nrf_power_event(NRFX_POWER_USB_EVT_DETECTED);
+  if (reg & POWER_USBREGSTATUS_OUTPUTRDY_Msk) {
+    tusb_hal_nrf_power_event(NRFX_POWER_USB_EVT_READY);
+  }
+}
+
+// ------------------------------------------------------------------- registro --
+// Una linea por suceso: al registro de viaje y, SOLO DURANTE EL ARRANQUE, tambien al USB.
+//
+// ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ POR QUE SOLO DURANTE EL ARRANQUE (2026-09-17) ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+// El protocolo de la app es "una respuesta por linea": por el puerto del cable no puede salir
+// una linea que nadie ha pedido. Estas lineas son utiles mientras el nodo arranca (si el
+// Bluetooth se cae, la ULTIMA marca del registro es el paso donde se quedo), pero en marcha
+// se colarian entre las respuestas de la app y del configurador web, asi que a partir de la
+// primera vuelta del bucle van SOLO al registro de viaje. Para consultar el estado en marcha
+// esta el comando `ble` del CLI y el objeto `status.ble`, que si son respuestas.
+bool gEnMarcha = false;
+
+void bleLog(const char *fmt, ...) {
+  char msg[96];
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(msg, sizeof(msg), fmt, ap);
+  va_end(ap);
+
+  flogLine("BLE %s", msg);
+  if (diagStreaming()) {
+    diagNote(msg);
+  } else if (!gEnMarcha && !tncActive()) {
+    Serial.print(F("BLE "));
+    Serial.println(msg);
+  }
+}
+
+// -------------------------------------------------------------------- cola ----
+void colaReset() {
+  gSalCab = 0;
+  gSalCola = 0;
+}
+
+size_t colaBytes() { return (gSalCola + kColaSalida - gSalCab) & (kColaSalida - 1); }
+
+bool colaPush(const uint8_t *p, size_t n) {
+  if (n == 0 || n > kColaSalida - 1) return false;
+  if (colaBytes() + n >= kColaSalida) return false;  // no cabe entera: no se parte
+  for (size_t i = 0; i < n; i++) {
+    gSal[gSalCola] = p[i];
+    gSalCola = (gSalCola + 1) & (kColaSalida - 1);
+  }
+  return true;
+}
+
+// Empuja COMO MUCHO un aviso por llamada (ver la nota del anillo).
+void colaEmpuja(uint32_t ahora) {
+  if (gSalCab == gSalCola) return;
+  if (!hostListo()) {
+    const size_t perdido = colaBytes();
+    colaReset();  // el huesped se ha ido: lo que iba para el ya no vale
+    gPerdidos += (uint32_t)perdido;
+    return;
+  }
+  if ((uint32_t)(ahora - gUltimoTrozoMs) < kPausaTrozoMs) return;
+
+  size_t trozo = kTrozoMax;
+  const uint16_t mtu = mtuActual();
+  if (mtu > 3 && (size_t)(mtu - 3) < trozo) trozo = (size_t)(mtu - 3);
+  if (trozo == 0) return;
+
+  uint8_t buf[kTrozoMax];
+  size_t n = 0, idx = gSalCab;
+  while (n < trozo && idx != gSalCola) {
+    buf[n++] = gSal[idx];
+    idx = (idx + 1) & (kColaSalida - 1);
+  }
+
+  gUltimoTrozoMs = ahora;
+  // `notify()` devuelve bool (a diferencia de `BLEUart::write()`, que devuelve bytes): true =
+  // el SoftDevice ha aceptado el aviso. Si dice que no (su cola esta llena), los bytes NO se
+  // sacan del anillo y se reintenta en la vuelta siguiente.
+  if (gTx.notify(gConnHandle, buf, (uint16_t)n)) {
+    gSalCab = idx;
+    gBytesOut += (uint32_t)n;
+    gTrozosOut++;
+  } else {
+    gRechazos++;
+  }
+}
+
+// ---------------------------------------------------------------- callbacks ---
+void alConectar(uint16_t conn_handle) {
+  gConnHandle = conn_handle;
+  // Solo se usa la direccion cacheada del huesped. NO se llama a `getPeerName()`: hace una
+  // lectura GATT de cliente que espera hasta 500 ms una respuesta que solo puede dar la
+  // propia tarea de BLE, y este callback corre DENTRO de esa tarea (solo podria atascarse y
+  // agotar el tiempo).
+  gPeerAddr[0] = '\0';
+  BLEConnection *c = Bluefruit.Connection(conn_handle);
+  if (c != nullptr) {
+    const ble_gap_addr_t a = c->getPeerAddr();
+    snprintf(gPeerAddr, sizeof(gPeerAddr), "%02X:%02X:%02X:%02X:%02X:%02X", a.addr[5],
+             a.addr[4], a.addr[3], a.addr[2], a.addr[1], a.addr[0]);
+  }
+  gEvtConectado = true;
+  gEvtFinPin = true;  // un enlace nuevo: el aviso del PIN anterior ya no pinta nada
+}
+
+void alDesconectar(uint16_t conn_handle, uint8_t motivo) {
+  (void)conn_handle;
+  gConnHandle = BLE_CONN_HANDLE_INVALID;
+  gEvtMotivo = motivo;
+  gEvtDesconectado = true;
+  gEvtFinPin = true;
+}
+
+// Eventos crudos del SoftDevice. Aqui SOLO se apunta lo que ha pasado (ver la cabecera).
+void alEvento(ble_evt_t *evt) {
+  switch (evt->header.evt_id) {
+    case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
+      gEvtPidePinMs = millis();
+      gEvtPidePin = true;
+      break;
+    case BLE_GAP_EVT_PASSKEY_DISPLAY: {
+      // El stack nos da el PIN que tiene que teclear el movil: es el configurado, y es el
+      // unico que se puede ensenar con la certeza de que es el bueno.
+      const ble_gap_evt_passkey_display_t *pd = &evt->evt.gap_evt.params.passkey_display;
+      memcpy(gEvtPinTxt, pd->passkey, 6);
+      gEvtPinTxt[6] = '\0';
+      gEvtPin = true;
+      break;
+    }
+    case BLE_GAP_EVT_AUTH_KEY_REQUEST:
+      // El movil quiere ENSENAR un PIN y que lo tecleemos nosotros. Este nodo no tiene
+      // teclado: no hay nada que hacer y el emparejamiento va a fallar. Se deja dicho.
+      gEvtFinPin = true;
+      break;
+    case BLE_GAP_EVT_AUTH_STATUS:
+      gUltimoPin = (int16_t)evt->evt.gap_evt.params.auth_status.auth_status;
+      if (evt->evt.gap_evt.params.auth_status.auth_status == BLE_GAP_SEC_STATUS_SUCCESS) {
+        gPinOk++;
+      } else {
+        gPinMal++;
+      }
+      gEvtFinPin = true;  // emparejado o fallado: el aviso ya ha hecho su trabajo
+      break;
+    default:
+      break;
+  }
+}
+
+// El callback de ESCRITURA del huesped (caracteristica RX). Copia y vuelve: no parsea y no
+// ejecuta nada. El tope de 4096 de una linea lo aplica el lector; aqui solo se evita que un
+// huesped que escribe sin parar llene la RAM.
+void alEscribir(uint16_t conn_hdl, BLECharacteristic *chr, uint8_t *datos, uint16_t n) {
+  (void)conn_hdl;
+  (void)chr;
+  if (datos == nullptr || n == 0) return;
+  if (gEntN + n > kBufEntrada) {
+    // El bucle no ha podido vaciar a tiempo (un repintado de la tinta son 1,5-3 s). Se tira
+    // el trozo ENTERO a proposito: la linea que se estaba formando queda cortada y se vera
+    // como "bad json", que es mejor que colar media orden.
+    gEntDesbordado = true;
+    return;
+  }
+  memcpy(gEnt + gEntN, datos, n);
+  gEntN += n;
+}
+
+// ---------------------------------------------------------------- arranque ----
+void construyeNombre() {
+  // El nombre anunciado tiene que llevar el indicativo: con varios nodos a la vista hay que
+  // poder distinguirlos. 29 bytes es lo que cabe en un nombre local COMPLETO del paquete de
+  // scan response; si el indicativo no cabe con el prefijo, se usa el indicativo solo, nunca
+  // uno cortado por la mitad.
+  char completo[40];
+  snprintf(completo, sizeof(completo), "Kacho APRS %s",
+           gCfg != nullptr ? gCfg->callsign : "");
+  if (strlen(completo) < sizeof(gAdvName)) {
+    snprintf(gAdvName, sizeof(gAdvName), "%s", completo);
+  } else {
+    snprintf(gAdvName, sizeof(gAdvName), "%.29s",
+             gCfg != nullptr ? gCfg->callsign : "APRS");
+  }
+}
+
+// Un PIN vale si son exactamente 6 digitos (lo exige el SoftDevice: BLE_GAP_PASSKEY_LEN).
+bool pinValido(const char *pin) {
+  if (pin == nullptr || strlen(pin) != 6) return false;
+  for (size_t i = 0; i < 6; i++) {
+    if (pin[i] < '0' || pin[i] > '9') return false;
+  }
+  return true;
+}
+
+// Levanta el stack UNA vez. El orden es el de los ejemplos de Adafruit (bleuart /
+// pairing_passkey) y no es casual: la seguridad se configura ANTES de crear las
+// caracteristicas, porque los permisos se calculan al crearlas.
+bool bleArrancaStack() {
+  if (gStackUp) return gServicioUp;
+
+  flogLine("BLE inicio 1/6: Bluefruit.begin (SoftDevice)");
+  memApunta(PASO_CONFIG);   // ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ si el nodo se cae aqui, esto lo dira en el arranque siguiente
+
+  // Ancho de banda del enlace: MTU 247 y 4 avisos en cola.
+  //
+  // â˜…â˜…â˜… EXPERIMENTO b46 (2026-09-17): SE ARRANCA EL STACK COMO EL FIRMWARE DE FABRICA â˜…â˜…â˜…
+  //   El firmware de fabrica del T-Echo (el que trae LilyGO en su repo,
+  //   `techorepofirm\T-Echo-main\examples\Factory\bleApp.cpp`) arranca el Bluetooth asi:
+  //       Bluefruit.begin();          <-- SIN ARGUMENTOS (0 enlaces configurados)
+  //       // y NO llama nunca a configPrphConn()
+  //   Nosotros llamabamos a `Bluefruit.begin(1, 0)` (1 enlace periferico) y a
+  //   `configPrphConn(247, ..., 4, 4)`: eso le pide al SoftDevice **mas tabla GATT y mas RAM**.
+  //   Como el nodo se muere justo AQUI (dentro de begin), se prueba primero lo que el
+  //   fabricante da por bueno y despues se sube poco a poco.
+  //   OJO: con esto el nodo NO queda utilizable (sin enlace no hay servicio): es una PRUEBA.
+  // memApunta(PASO_CONFIG);
+  // Bluefruit.configPrphConn(247, BLE_GAP_EVENT_LENGTH_DEFAULT, 4, 4);
+  memApunta(PASO_BEGIN_LLAMA);     // el siguiente paso ES Bluefruit.begin()
+
+  /* ★★★ AQUI SE CUENTA LO QUE CONTESTO LA SOFTDEVICE EN LA PRUEBA ANTERIOR (b51) ★★★
+   * La prueba arranca la SD a mano y se cae antes de poder imprimir nada, asi que el resultado
+   * se guarda en `GPREGRET2` (registro del chip: **no es RAM**, sobrevive al reinicio). Este
+   * arranque ya es estable y puede contarlo por el cable. Lo primero que hace es leerlo. */
+  {
+    const uint32_t reg = NRF_POWER->GPREGRET2;
+    if ((reg >> 24) == 0xB5u) {
+      const uint32_t err = reg & 0xFFFFu;
+      bleLog("*** LA PRUEBA DEL ARRANQUE A MANO CONTESTO: sd_softdevice_enable() = 0x%08lX *** "
+             "(0 = arranca; 0x1001 = mala prioridad; 8 = ya estaba)", (unsigned long)err);
+      flogLine("BLE b51: LA PRUEBA CONTESTO 0x%08lX (SD a mano)", (unsigned long)err);
+      NRF_POWER->GPREGRET2 = 0;   // ya contado, no se repite
+    }
+  }
+
+  /* â˜…â˜…â˜… LA BISECCION QUE SEPARA LAS DOS MITADES (b50, 2026-09-17) â˜…â˜…â˜…
+   *
+   * HASTA AQUI: el banco de diagnostico ARRANCA el SoftDevice en esta placa (medido, devuelve
+   * 0) y nuestro firmware se cae dentro de `Bluefruit.begin()`. La pregunta que queda es UNA:
+   *
+   *   Â¿se cae porque el CAMINO DEL CORE es distinto del que usa el banco?
+   *   Â¿o se cae porque algo de TODO LO DEMAS que llevamos dentro (radio, pantalla, GPS,
+   *    sistema de ficheros, constructores globales) deja la placa en un estado que la SoftDevice
+   *    no admite?
+   *
+   * Aqui se arranca la SoftDevice A MANO, **exactamente como el banco** (su mismo reloj, su
+   * mismo manejador de fallo, y el `usb_softdevice_pre_enable()` que suelta el POWER del USB).
+   * Y se apunta en el registro lo que CONTESTA, que es el dato:
+   *   - si contesta 0 -> el camino del core ERA el problema (y ya sabemos por donde tirar);
+   *   - si contesta 0x1001 otra vez -> el problema esta en lo que llevamos dentro, no en el
+   *     camino (y la biseccion sigue por el otro lado: quitando piezas nuestras);
+   *   - si contesta 8 (INVALID_STATE) -> es que YA habia una SoftDevice arrancada.
+   *
+   * OJO: esto es una PRUEBA, no el arreglo: al arrancarla a mano, `Bluefruit.begin()` ya no
+   * puede arrancarla (el core no comprueba si esta arrancada y su `sd_softdevice_enable()`
+   * devolveria INVALID_STATE), asi que despues se para y se apaga la SoftDevice. */
+#ifdef BLE_PRUEBA_ARRANQUE_A_MANO
+  {
+    /* â˜… EL NOMBRE REAL DEL SIMBOLO: el core define `usb_softdevice_pre_enable()` como C++
+     *   (esta dentro de un bloque sin `extern "C"`), asi que su simbolo va "mangled":
+     *   `_Z25usb_softdevice_pre_enablev`. Comprobado con `arm-none-eabi-nm` sobre la libreria
+     *   del core, igual que hizo el banco.
+     *   â˜… Y LA DECLARACION TIENE QUE ESTAR FUERA DEL `namespace {` DE ESTE FICHERO: si se
+     *     declara dentro, el compilador le da enlace INTERNO y el enlazador se queja de
+     *     "undefined reference to (anonymous namespace)::_Z25usb_softdevice_pre_enablev()".
+     *     Por eso se declara arriba, antes del namespace (ver `blePreEnableUsb`). */
+
+    // El mismo reloj que usa el core y que usa el banco (cristal de 32 kHz, 20 ppm).
+    nrf_clock_lf_cfg_t reloj;
+    reloj.source = NRF_CLOCK_LF_SRC_XTAL;
+    reloj.rc_ctiv = 0;
+    reloj.rc_temp_ctiv = 0;
+    reloj.accuracy = NRF_CLOCK_LF_ACCURACY_20_PPM;
+
+    bleLog("PRUEBA: arranco la SD a mano (como el banco). ISER=0x%08lX",
+           (unsigned long)NVIC->ISER[0]);
+    usbRearma();                          // equivalente a lo que hace el core con el POWER
+    const uint32_t err = sd_softdevice_enable(&reloj, bleFalloSD);
+    /* ★★★ EL RESULTADO SE GUARDA EN EL REGISTRO DEL CHIP ANTES DE NADA (b51) ★★★
+     * Porque el nodo se CAE justo aqui: si solo se imprime, el numero se pierde con el
+     * reinicio (el puerto se cae con el nodo). `GPREGRET2` **no es RAM**: el chip lo conserva
+     * al reiniciar, asi que el arranque siguiente (que ya es estable) puede leerlo y contarlo
+     * por el cable. Ese numero es el dato que llevamos toda la noche buscando.
+     * Formato: 0xB5 en el byte alto = "esto es un resultado de la prueba", y el codigo debajo. */
+    NRF_POWER->GPREGRET2 = 0xB5000000u | (err & 0xFFFFu);
+    bleLog("PRUEBA: sd_softdevice_enable() a mano = 0x%08lX  (0 = ARRANCA; 0x1001 = mala "
+           "prioridad; 8 = ya estaba)", (unsigned long)err);
+    flogLine("BLE PRUEBA b50: SD a mano = 0x%08lX (ISER 0x%08lX)",
+             (unsigned long)err, (unsigned long)NVIC->ISER[0]);
+    if (err == 0) {
+      // Arranco: se pregunta quien es y se apaga, que esto solo era la prueba.
+      ble_version_t v;
+      memset(&v, 0, sizeof(v));
+      const uint32_t errV = sd_ble_version_get(&v);
+      bleLog("PRUEBA: la SD arranco. sd_ble_version_get()=%lu  fwid=0x%04X",
+             (unsigned long)errV, (unsigned)v.subversion_number);
+      flogLine("BLE PRUEBA b50: LA SD ARRANCO a mano (fwid 0x%04X)", (unsigned)v.subversion_number);
+      sd_softdevice_disable();
+    }
+    memApunta(PASO_FIN);   // que no se interprete como "se murio"
+    return false;
+  }
+#endif
+
+  if (!Bluefruit.begin()) {  // â˜… COMO EL FIRMWARE DE FABRICA: sin argumentos (b46)
+    gErrArranque = -1;
+    memApuntaError(0xE1);        // Ã¢Ëœâ€¦ el core dijo que NO: queda apuntado para el informe
+    // Ã¢Ëœâ€¦Ã¢Ëœâ€¦ LO QUE HACE QUE ESTO NO DEJE EL NODO MUDO (ver la cabecera del fichero) Ã¢Ëœâ€¦Ã¢Ëœâ€¦
+    // El SoftDevice NO ha arrancado y el nucleo ya ha desmontado el USB para cederselo.
+    usbRearma();
+    bleLog("begin() FALLO: Bluetooth apagado (USB rearmado a mano)");
+    return false;
+  }
+  gStackUp = true;
+  gErrArranque = 0;
+  flogLine("BLE inicio 2/6: SoftDevice arriba");
+
+  Bluefruit.setTxPower(kBleTxPowerDbm);
+  Bluefruit.setName(gAdvName);
+
+  // ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ SEGURIDAD: PIN de 6 digitos + MITM, o enlace abierto DICHO EN VOZ ALTA ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+  // El nodo es "solo pantalla": el movil pregunta el PIN y nosotros lo ensenamos. Con PIN
+  // valido las dos caracteristicas piden enlace cifrado con MITM; sin PIN valido no se puede
+  // pedir un PIN que no existe, asi que el enlace queda abierto y se avisa por el registro.
+  gRequierePin = pinValido(gCfg != nullptr ? gCfg->blePin : nullptr);
+  if (gRequierePin) {
+    if (!Bluefruit.Security.setPIN(gCfg->blePin)) {
+      // setPIN() rechaza lo que no sean 6 digitos. La validacion lo hace imposible; si
+      // pasara, el nodo no puede quedarse sin poder emparejar en silencio.
+      gRequierePin = false;
+      bleLog("setPIN rechazado: enlace ABIERTO (revisa blePin en la configuracion)");
+    } else {
+      Bluefruit.Security.setIOCaps(true, false, false);  // pantalla si, teclado no
+      Bluefruit.Security.setMITM(true);
+    }
+  } else {
+    bleLog("sin PIN valido (blePin): enlace ABIERTO");
+  }
+
+  flogLine("BLE inicio 3/6: servicio NUS");
+  // Permisos de las caracteristicas ANTES de crearlas: se calculan al crearlas, asi que
+  // despues no sirve de nada.
+  const SecureMode_t modo = gRequierePin ? SECMODE_ENC_WITH_MITM : SECMODE_OPEN;
+  gTx.setPermission(modo, SECMODE_NO_ACCESS);  // avisos: el huesped escucha
+  gRx.setPermission(SECMODE_NO_ACCESS, modo);  // ordenes: el huesped escribe
+  if (!gServicio.begin()) {
+    gErrArranque = -2;
+    bleLog("servicio NUS: begin() FALLO");
+    /* â˜… EN EL EXPERIMENTO b46 ESTO ES LO ESPERADO Y NO ES UN FALLO MALO: el stack se ha
+     *   arrancado SIN enlaces configurados (como el firmware de fabrica), asi que no hay sitio
+     *   para nuestro servicio. Lo importante de esta prueba es que **el SoftDevice ha subido y
+     *   el nodo NO se ha caido**; el servicio volvera cuando se suba el numero de enlaces. */
+    if (gStackUp) {
+      flogLine("BLE b46: el stack ARRANCO pero sin enlaces configurados (prueba): sin servicio");
+      memApunta(PASO_BEGIN_SALIO);
+      return false;
+    }
+    // El SoftDevice SI ha arrancado: el nucleo ya ha rearmado el USB por su cuenta.
+    return false;
+  }
+  gTx.begin();
+  gRx.begin();
+  gRx.setWriteCallback(alEscribir, true);  // diferido: se ejecuta fuera de la tarea de BLE
+  gServicioUp = true;
+
+  flogLine("BLE inicio 4/6: advertising");
+  Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
+  Bluefruit.Advertising.addTxPower();
+  Bluefruit.Advertising.addService(gServicio);
+  Bluefruit.ScanResponse.addName();  // el nombre va en el scan response: ahi lo busca el movil
+  Bluefruit.Advertising.setIntervalMS(20, 152);  // 20 ms rapido / 152 ms despacio
+  Bluefruit.Advertising.setFastTimeout(30);
+
+  Bluefruit.setEventCallback(alEvento);
+  Bluefruit.Periph.setConnectCallback(alConectar);
+  Bluefruit.Periph.setDisconnectCallback(alDesconectar);
+  return true;
+}
+
+// Enciende o apaga el enlace segun `cfg.bleEnabled`, EN CALIENTE (menu, web o `set`).
+void bleAplica(bool encender) {
+  /* ★★★ RED DE SEGURIDAD: ARRANCAR CON EL BLUETOOTH APAGADO PASE LO QUE PASE (b52) ★★★
+   *
+   * POR QUE HACE FALTA, y esta medido en la placa (2026-09-17, noche): si la configuracion
+   * guardada tiene `bleEnabled=true` y el arranque del Bluetooth se cae, el nodo entra en un
+   * **bucle de reinicios** que no se puede cortar desde el cable. La auto-recuperacion que se
+   * escribio antes (b42/b43) NO llega a funcionar, porque depende de un registro del chip
+   * (`GPREGRET`) que **el cargador limpia al grabar**: al arranque siguiente la marca ya no
+   * esta, asi que vuelve a intentarlo y se vuelve a caer.
+   *
+   * COMO SE CORTA, sin depender de ningun registro: el firmware **arranca siempre con el
+   * Bluetooth apagado**, ignore lo que ignore la configuracion. Encenderlo es un acto
+   * deliberado del operador (el menu, la web o `set bleEnabled 1`), y entonces si se intenta.
+   * El precio es que tras un reinicio hay que volver a encenderlo a mano; a cambio, **el nodo
+   * NUNCA se queda en bucle por el Bluetooth**, que es lo que llevamos toda la noche peleando. */
+  if (!gArranqueHecho) {
+    gArranqueHecho = true;
+    if (encender) {
+      bleLog("arranque: el Bluetooth NO se enciende solo (red de seguridad b52). Para "
+             "encenderlo: menu, configurador web o `set bleEnabled 1`");
+    }
+    encender = false;
+  }
+
+  // gEnabled guarda el valor APLICADO, no "el Bluetooth funciona": si el arranque falla, no
+  // se reintenta en cada vuelta del bucle (eso inundaria el registro). Apagar y volver a
+  // encender el ajuste es la forma que tiene el operador de pedir un reintento.
+  gEnabled = encender;
+
+  if (!encender) {
+    if (gStackUp) {
+      // restartOnDisconnect() primero: si no, echar al huesped volveria a anunciar solo.
+      Bluefruit.Advertising.restartOnDisconnect(false);
+      if (Bluefruit.Advertising.isRunning()) Bluefruit.Advertising.stop();
+      if (gConnHandle != BLE_CONN_HANDLE_INVALID) Bluefruit.disconnect(gConnHandle);
+      colaReset();
+    }
+    bleLog("parado: advertising apagado (bleEnabled=false)");
+    return;
+  }
+
+  construyeNombre();
+
+  /* ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ LO PRIMERO: SI EL ARRANQUE ANTERIOR SE MURIO CON EL BLUETOOTH A MEDIAS, DESHACERLO ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦
+     DISEÃƒÆ’Ã¢â‚¬ËœO DEL OPERADOR (2026-09-17, b38), y es mejor que el mio: "que este el bluetooth
+     apagado, lo enciendes tu a mano, pero que no guarde en flash el estado de encendido y que
+     grabe ese fallo, y cuando reinicie lo haga con el bluetooth apagado y puedas consultarlo".
+
+     Como queda:
+       - El encendido del Bluetooth es una prueba EN CALIENTE: si el nodo se reinicia, vuelve a
+         estar apagado **por si solo**, porque aqui se deshace el `bleEnabled` que se guardo.
+       - El fallo queda apuntado (en que paso se murio) y se cuenta por el cable.
+       - Y **no se reintenta**, que es lo que rompe el bucle: el nodo se queda VIVO y el fallo
+         SE PUEDE CONSULTAR (que era la objecion del operador, y tenia razon). */
+  {
+    const uint32_t pasoAntes = bleRegLee(BLE_REG_PASO);
+    const uint32_t iserAntes = bleRegLee(BLE_REG_ISER);
+    if (pasoAntes != PASO_NADA && pasoAntes != PASO_FIN) {
+      const uint32_t previo = bleRegLee(BLE_REG_PREVIO);
+      /* ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ SE GUARDA EL FALLO ANTES DE LIMPIAR NADA (b43): si no, el informe del comando `ble`
+       *   no tendria que contar (el b42 lo hacia mal: decia "no hay SoftDevice" cuando lo que
+       *   pasaba es que el intento anterior se habia muerto). */
+      memGuardaUltimoFallo(pasoAntes, bleRegLee(BLE_REG_ERR), iserAntes);
+      /* Y el ISER que se apunto antes de tocar el SoftDevice se pasa al `motivo` del informe,
+       *   porque `GPREGRET2` se acaba de usar para guardar el fallo. */
+      bleRegPon(BLE_REG_PASO, PASO_NADA);   // limpio: el proximo arranque es normal
+      bleRegPon(BLE_REG_PREVIO, 0);
+      (*gCfg).bleEnabled = (previo != 0);
+      storeSave(*gCfg);   // ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ si el arranque se cae, el encendido NO sobrevive al reinicio
+      bleLog("*** EL ARRANQUE ANTERIOR SE MURIO *** en el paso %s (ISER antes de la SD="
+             "0x%08lX). El Bluetooth vuelve a estar APAGADO (el encendido no se guarda) y NO "
+             "se reintenta, para no volver al bucle. Para reintentarlo: enciendelo otra vez en "
+             "el menu.",
+             nombrePaso(pasoAntes), (unsigned long)iserAntes);
+      flogLine("BLE SE MURIO en '%s' | ISER 0x%08lX | STATUS 0x%08lX | GPREGRET2 0x%08lX",
+               nombrePaso(pasoAntes), (unsigned long)iserAntes,
+               (unsigned long)NRF_POWER->RESETREAS, (unsigned long)NRF_POWER->GPREGRET2);
+      displayPopupWait("BLUETOOTH NO: SE CAYO", 4000);
+      gErrArranque = -12;
+      gBloqueadoPorSd = true;   // reutiliza el camino de "sin Bluetooth pero vivo"
+      gEnabled = true;          // y que NO se reintente en cada vuelta del bucle
+      return;
+    }
+    // Si llego al final o no hay marca, la marca se limpia y se arranca normal.
+    bleRegPon(BLE_REG_PASO, PASO_NADA);
+  }
+
+  /* ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ AQUI EMPIEZA LA PRUEBA: se apunta que estamos intentando arrancar el Bluetooth y cual era
+     el `bleEnabled` que hay que DESHACER si el intento se lleva el nodo por delante (ver el
+     bloque de arriba). Desde este momento, si el nodo se reinicia sin llegar al final, el
+     arranque siguiente lo sabra, volvera a estar apagado y **no lo reintentara**. */
+  memRecuerdaEncendidoPrevio(gCfg->bleEnabled ? 1u : 0u);
+  memApunta(PASO_SONDA_OK);
+
+  /* ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ QUE INTERRUPCIONES ESTAN PUESTAS ANTES DE ARRANCAR EL SOFTDEVICE (b35) ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+     Esto es el DETECTIVE, no un adorno. El SoftDevice **se reserva los niveles de prioridad 0,
+     1 y 4** (`nrf_nvic.h`): si al llamar a `sd_softdevice_enable()` hay UNA interrupcion
+     habilitada con uno de esos niveles, la llamada falla con `0x1001`
+     (`NRF_ERROR_SDM_INCORRECT_INTERRUPT_CONFIGURATION`) y ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â como el `HardFault_Handler` de este
+     core reinicia ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â el nodo se ve en un bucle, sin decir nada.
+     Aqui se apunta en el registro, ANTES de tocar el SoftDevice, cuantas interrupciones hay
+     habilitadas y si alguna esta en esos niveles reservados. Asi, si vuelve a colgarse, el
+     registro dira si la sospecha era cierta en vez de tener que suponerlo. */
+  {
+    uint32_t habilitadas = NVIC->ISER[0] + NVIC->ISER[1];
+    int reservadas = 0;
+    int primera = -1;
+    for (int irq = 0; irq < 32; irq++) {
+      if ((NVIC->ISER[0] & (1UL << irq)) == 0) continue;
+      const uint32_t prio = (NVIC->IP[irq] >> (8u - __NVIC_PRIO_BITS)) & 0x7u;
+      if (prio == 0u || prio == 1u || prio == 4u) {
+        reservadas++;
+        if (primera < 0) primera = irq;
+      }
+    }
+    bleLog("antes de la SD: %lu IRQ habilitadas, %d en niveles reservados (0/1/4)%s%d",
+           (unsigned long)habilitadas, reservadas,
+           primera >= 0 ? ", la primera es la IRQ " : "", primera >= 0 ? primera : 0);
+    if (primera >= 0) {
+      flogLine("BLE aviso: IRQ %d con prioridad reservada por el SoftDevice", primera);
+    }
+  }
+
+  /* ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ LA COMPROBACION QUE VA ANTES DE TOCAR EL USB (2026-09-17, b26) ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+     Medido en la placa con el b25: si `Bluefruit.begin()` llega a desmontar el USB y el
+     SoftDevice no arranca, el nodo se queda en un ir y venir del puerto y sin consola, y la
+     recuperacion (`usbRearma()`) NO lo salva. Por eso el SoftDevice se mira AQUI, leyendo su
+     ficha de la flash (ver `softdevicePareceValido()`), y si NO HAY ficha
+     **`Bluefruit.begin()` no se llama y el USB no se toca en ningun momento**. El nodo se
+     queda sin Bluetooth, pero sigue siendo un nodo: cable, radio, pantalla y registro.
+
+     ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Lo que se comprueba es que HAYA un SoftDevice, no que sea exactamente el de este build
+     (ver el por que, medido, en `softdevicePareceValido()`). Si lo hay pero es de otra
+     revision, se intenta arrancar igual y se deja dicho en el registro.
+
+     No se reintenta y no se reinicia: se apunta el motivo, se dice por donde hable el
+     operador (comando `ble`, `status.ble` y el registro) y se sigue con la vida normal. */
+  if (!softdevicePareceValido()) {
+    gErrArranque = -10;
+    gBloqueadoPorSd = true;
+    // ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ `gEnabled` SE PONE A `true` A PROPOSITO, aunque el Bluetooth NO haya arrancado.
+    //   `gEnabled` guarda el valor APLICADO, no "el Bluetooth funciona". Si se dejara en
+    //   `false`, `bleLoop()` volveria a llamar aqui en CADA vuelta del bucle (porque
+    //   `cfg.bleEnabled` sigue siendo true) y el nodo se pasaria la vida intentandolo y
+    //   sacando el cartel en la pantalla. Asi se intenta UNA vez por arranque y despues se
+    //   queda quieto diciendo por que. Apagar y encender el ajuste es la forma de reintentar.
+    gEnabled = true;
+    // El aviso en la pantalla: el operador tiene que poder enterarse SIN el cable.
+    displayPopupWait("BLUETOOTH NO: SOFTDEVICE", 4000);
+    bleLog("NO se arranca: NO hay SoftDevice en la flash (ficha en 0x%04X: tamano %u, "
+           "id 0x%08lX, fwid 0x%04X). El USB NO se ha tocado",
+           (unsigned)SD_INFO_DIR, (unsigned)softdeviceTamanoFicha(),
+           (unsigned long)softdeviceIdLeido(), (unsigned)softdeviceFwidLeido());
+    return;
+  }
+  gBloqueadoPorSd = false;
+  if (!softdeviceFwidEsElEsperado()) {
+    // No es un bloqueo: se intenta arrancar. Pero queda dicho, porque es justo el dato que
+    // hace falta si el arranque falla despues.
+    bleLog("aviso: la placa lleva un SoftDevice de otra revision (fwid 0x%04X, este build "
+           "espera 0x%04X); se intenta arrancar igual",
+           (unsigned)softdeviceFwidLeido(), (unsigned)SD_ESPERADO_FWID);
+  }
+
+  /* ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ EL ARREGLO MEDIDO: CEDER LOS CUATRO PERIFERICOS QUE EL SOFTDEVICE SE RESERVA (b36) ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+     Esto NO es una suposicion: sale del banco de diagnostico (`diag_ble`), medido en ESTA
+     placa el 2026-09-17. Lo que dijo el acta:
+
+        is_enabled() al empezar : 0                     (nada arrancado)
+        sd_softdevice_enable()  : 0x1001                (FALLA)
+        NVIC->ISER[0] = 0x00000000  ISER[1] = 0x00000000  (ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡NI UNA interrupcion habilitada!)
+        EXPERIMENTO C (apagar POWER_CLOCK, RADIO, TEMP y SWI5) -> 0x00000000  *** ARRANCA ***
+        despues: sd_ble_cfg_set() x7 = 0, sd_ble_enable() = 0
+
+     O sea: con el `ISER` a CERO la llamada seguia fallando con `0x1001`, y arranca en cuanto
+     se APAGAN los cuatro perifericos que el SoftDevice se queda (`__NRF_NVIC_SD_IRQS_0` en
+     `nrf_nvic.h`: POWER_CLOCK, RADIO, TEMP y SWI5). No era "una IRQ con prioridad ilegal"
+     ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Âel mensaje del error enganyaÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â: es que el SoftDevice exige que esos cuatro **esten
+     cedidos**. Es justo lo que hace el arranque oficial de Nordic antes de subir el stack, y
+     lo que este firmware no estaba haciendo.
+
+     Se apagan con `NVIC_DisableIRQ`, se limpia lo pendiente y se les pone prioridad 0 (la que
+     el SoftDevice espera encontrar). Apagarlos es inofensivo: POWER_CLOCK y TEMP los usa el
+     SoftDevice a partir de ahora, RADIO lo usa el suyo, y SWI5 es su canal de senales. */
+  {
+    const IRQn_Type reservadas[4] = { POWER_CLOCK_IRQn, RADIO_IRQn, TEMP_IRQn, SWI5_IRQn };
+    bleRegPon(BLE_REG_ISER, NVIC->ISER[0]);  // ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ el dato que se leera si se cae
+    bleLog("cediendo al SoftDevice: POWER_CLOCK, RADIO, TEMP y SWI5 (ISER=0x%08lX antes)",
+           (unsigned long)NVIC->ISER[0]);
+    for (int k = 0; k < 4; k++) {
+      NVIC_DisableIRQ(reservadas[k]);
+      NVIC_ClearPendingIRQ(reservadas[k]);
+      NVIC_SetPriority(reservadas[k], 0);
+    }
+    memApunta(PASO_SONDA_OK);
+  }
+
+  if (!bleArrancaStack()) return;  // el motivo ya esta en el registro
+  memApunta(PASO_BEGIN_SALIO);
+
+  if (!Bluefruit.Advertising.isRunning()) {
+    Bluefruit.Advertising.restartOnDisconnect(true);
+    flogLine("BLE inicio 5/6: advertising start");
+    if (!Bluefruit.Advertising.start(0)) {
+      gErrArranque = -3;
+      bleLog("advertising start FALLO");
+      return;
+    }
+  }
+  flogLine("BLE inicio 6/6: anunciando como \"%s\" (%s)", gAdvName,
+           gRequierePin ? "PIN + MITM" : "enlace abierto");
+  /* ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ ESTE ARRANQUE LLEGO AL FINAL. A partir de aqui, si el nodo se reinicia, la memoria del
+   *   arranque ya no dira "se cayo": dira que el Bluetooth estaba ARRIBA. */
+  bleLog("Bluetooth ARRIBA: si el nodo se reinicia a partir de ahora, el fallo NO es el arranque");
+  /* ÃƒÂ¢Ã‹Å“Ã¢â‚¬Â¦ Y se cierra la marca: el Bluetooth esta ARRIBA, asi que el arranque siguiente (aunque
+   *   sea un reinicio pedido a proposito) es un arranque normal y puede subir el Bluetooth. */
+  memApunta(PASO_FIN);
+  memRecuerdaEncendidoPrevio(0);
+}
+
+// Cambios de configuracion que tienen que llegar a un stack ya arrancado.
+void bleVigilaConfig() {
+  if (!gStackUp) return;
+
+  static char pinAplicado[8] = "";
+  if (pinAplicado[0] == '\0') {
+    snprintf(pinAplicado, sizeof(pinAplicado), "%s", gCfg->blePin);
+  } else if (strcmp(pinAplicado, gCfg->blePin) != 0) {
+    if (pinValido(gCfg->blePin) && Bluefruit.Security.setPIN(gCfg->blePin)) {
+      bleLog("PIN cambiado a %s (se aplica en el proximo emparejamiento)", gCfg->blePin);
+    } else {
+      bleLog("PIN '%s' rechazado (6 digitos): se mantiene el anterior", gCfg->blePin);
+    }
+    snprintf(pinAplicado, sizeof(pinAplicado), "%s", gCfg->blePin);
+  }
+
+  static char callAplicada[16] = "";
+  if (callAplicada[0] == '\0') {
+    snprintf(callAplicada, sizeof(callAplicada), "%s", gCfg->callsign);
+  } else if (strcmp(callAplicada, gCfg->callsign) != 0) {
+    construyeNombre();
+    Bluefruit.setName(gAdvName);
+    snprintf(callAplicada, sizeof(callAplicada), "%s", gCfg->callsign);
+    bleLog("nombre cambiado a \"%s\"", gAdvName);
+  }
+}
+
+// Aviso del PIN y registro diferido de lo que noto la tarea de BLE.
+void bleAvisos(uint32_t ahora) {
+  if (gEvtConectado) {
+    gEvtConectado = false;
+    bleLog("huesped conectado: %s", gPeerAddr);
+  }
+  if (gEvtDesconectado) {
+    gEvtDesconectado = false;
+    // Los restos de una linea a medias no pueden quedarse para la conexion siguiente: ni el
+    // trozo sin cobrar de aqui, ni la linea a medio formar en el receptor compartido.
+    gEntN = 0;
+    configProtocolOlvidaLineaBle();
+    bleLog("huesped desconectado (motivo 0x%02X)", (unsigned)gEvtMotivo);
+  }
+  if (gEvtPidePin && (uint32_t)(ahora - gEvtPidePinMs) >= kEsperaPinMs) {
+    // No llego el evento con el PIN: se ensena el CONFIGURADO, que es el que el movil esta
+    // tecleando (emparejamiento con PIN estatico). Sin PIN no se ensena nada.
+    gEvtPidePin = false;
+    gSolicitudes++;
+    if (gRequierePin) {
+      bleLog("emparejamiento pedido (#%u): PIN en pantalla", (unsigned)gSolicitudes);
+      displayPinSplash(gCfg->blePin, false);
+      gPinEnPantalla = true;
+      gPinDesdeMs = ahora;
+    } else {
+      bleLog("emparejamiento pedido (#%u): sin PIN configurado", (unsigned)gSolicitudes);
+    }
+  }
+  if (gEvtPin) {
+    char pin[8];
+    memcpy(pin, gEvtPinTxt, sizeof(pin));
+    gEvtPin = false;
+    gEvtPidePin = false;
+    gSolicitudes++;
+    bleLog("emparejamiento pedido (#%u): PIN %s en pantalla", (unsigned)gSolicitudes, pin);
+    displayPinSplash(pin, true);
+    gPinEnPantalla = true;
+    gPinDesdeMs = ahora;
+  }
+  if (gEvtFinPin) {
+    gEvtFinPin = false;
+    // Emparejado o fallado, el aviso ya ha hecho su trabajo: se quita en el acto.
+    if (gPinEnPantalla) {
+      displayPinSplashClear();
+      gPinEnPantalla = false;
+      bleLog("aviso de PIN retirado (fin del intento)");
+    }
+  }
+  if (gPinEnPantalla && (uint32_t)(ahora - gPinDesdeMs) >= kPinMaxMs) {
+    // Red de seguridad: aunque no llegue ningun evento, la pantalla no se queda con el PIN.
+    displayPinSplashClear();
+    gPinEnPantalla = false;
+    bleLog("aviso de PIN retirado (60 s)");
+  }
+}
+
+}  // namespace
+
+// ================================================================== public ===
+// Comando `ble` del CLI: una sola palabra de escribir, y contesta todo lo que hace falta para
+// saber si el Bluetooth esta vivo SIN tener que mirarlo desde un movil. Aqui, y no en cli.cpp,
+// porque es lo unico que conoce todos estos numeros: el CLI no tiene por que saber del
+// SoftDevice.
+String bleResumen() {
+  // 700 y no 400 (2026-09-17, b28): con la ficha entera del SoftDevice detras del motivo, la
+  // linea se pasaba y se cortaba justo el dato nuevo. El bucle principal no se entera: esto
+  // se llama cuando alguien pregunta.
+  char b[700];
+  // ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ EL MOTIVO, CON PALABRAS Y EN PRIMER PLANO (2026-09-17, b26). Un nodo sin Bluetooth es
+  //   aceptable; un nodo MUDO no. Si el Bluetooth no arranco por el SoftDevice, esto lo dice
+  //   sin que nadie tenga que interpretar un numero.
+  char motivo[160];
+  /* â˜… PRIMERO LO MAS IMPORTANTE: SI HAY UN FALLO GUARDADO, SE CUENTA (b44). Va antes que nada
+   *   porque es EL dato que se busca cuando el Bluetooth no arranca, y hay que poder leerlo en
+   *   CUALQUIER arranque posterior (no solo en el siguiente: el operador puede tardar en
+   *   preguntar, y el nodo ya no lo reintenta). */
+  const uint32_t pasoUltimo = memUltimoPaso();
+  if (pasoUltimo != PASO_NADA) {
+    snprintf(motivo, sizeof(motivo),
+             "EL ARRANQUE ANTERIOR SE MURIO en '%s' | ISER antes de la SD=0x%04lX | err=0x%02lX "
+             "(0xE1 = el core dijo que NO en begin())",
+             nombrePaso(pasoUltimo), (unsigned long)memUltimoIser(), (unsigned long)memUltimoErr());
+  } else if (gBloqueadoPorSd) {
+    if (!softdevicePareceValido()) {
+      snprintf(motivo, sizeof(motivo),
+               "NO hay SoftDevice en la flash (el USB no se ha tocado)");
+    } else {
+      snprintf(motivo, sizeof(motivo), "no arrancado (el arranque anterior no lo intento)");
+    }
+  } else if (gStackUp && gServicioUp) {
+    snprintf(motivo, sizeof(motivo), "arranque ok");
+  } else if (!gCfg->bleEnabled) {
+    snprintf(motivo, sizeof(motivo), "apagado en la configuracion (bleEnabled=false)");
+  } else {
+    snprintf(motivo, sizeof(motivo), "no arranco (codigo %d)", gErrArranque);
+  }
+
+  snprintf(b, sizeof(b),
+           "BLE %s | %s | %s | nombre \"%s\" | MTU %u | huesped %s | in %lu trozos/%lu B | "
+           "out %lu avisos/%lu B | perdidos %lu | PIN %s pide %lu ok %lu mal %lu (ult %d)",
+           APP_BUILD_NUM, bleStateText(bleStateCode()), motivo, gAdvName,
+           (unsigned)bleMtu(), gPeerAddr[0] ? gPeerAddr : "-", (unsigned long)gTrozosIn,
+           (unsigned long)gBytesIn, (unsigned long)gTrozosOut, (unsigned long)gBytesOut,
+           (unsigned long)(gPerdidos + gRechazos), gRequierePin ? "si" : "NO",
+           (unsigned long)gSolicitudes, (unsigned long)gPinOk, (unsigned long)gPinMal,
+           (int)gUltimoPin);
+
+  /* ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ LA FICHA ENTERA DEL SOFTDEVICE, EN LA MISMA LINEA (2026-09-17, b28/b31). Va SIEMPRE,
+     haya arrancado o no: con el `fwid` solo no se puede decidir nada, y este dato es el que
+     dice si la placa lleva el SoftDevice que este build espera, otro parecido o ninguno.
+     Va aqui, y no en otra linea, porque el protocolo es "una respuesta por linea" y el
+     operador tiene que poder copiar UNA sola. */
+  {
+    char extra[160];
+    snprintf(extra, sizeof(extra),
+             " | SD: ficha %u B, fwid 0x%04X%s, id 0x%08lX, version %lu.%lu.%lu, "
+             "tamano %lu B (%s)",
+             (unsigned)softdeviceTamanoFicha(), (unsigned)softdeviceFwidLeido(),
+             softdeviceFwidEsElEsperado() ? " (el de este build)" : "",
+             (unsigned long)softdeviceIdLeido(),
+             (unsigned long)softdeviceVersionParte(0), (unsigned long)softdeviceVersionParte(1),
+             (unsigned long)softdeviceVersionParte(2),
+             (unsigned long)softdeviceTamanoLeido(),
+             softdevicePareceValido() ? "se intenta arrancar" : "NO hay SoftDevice");
+    if (strlen(b) + strlen(extra) < sizeof(b)) strncat(b, extra, sizeof(b) - strlen(b) - 1);
+  }
+  return String(b);
+}
+
+void bleBindConfig(DigiConfig *cfg) { gCfg = cfg; }
+
+// El protocolo necesita saber a quien darle las respuestas de los comandos que entren por el
+// aire, y no puede incluir esta cabecera (seria un ciclo: nosotros incluimos la suya). Se
+// registra aqui, que es el sitio que sabe escribir por el enlace.
+namespace {
+size_t salidaParaProtocolo(const uint8_t *datos, size_t n, uint32_t esperaMs) {
+  return bleLinkWrite(datos, n, esperaMs);
+}
+
+// Rellena el objeto `status.ble` del comando `status`. Lo llama el protocolo, que no puede
+// incluir esta cabecera (seria un ciclo): ver protocolEstadoBle en protocol.h.
+void estadoParaProtocolo(JsonObject &d) {
+  d["on"] = bleLinkUp();
+  d["state"] = bleStateCode();
+  d["what"] = bleStateText(bleStateCode());
+  d["name"] = bleAdvName();
+  // ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ LO QUE HACE FALTA PARA QUE LA APP (y el operador) SEPAN QUE PASA (2026-09-17, b26):
+  //   `err` es un NUMERO y no dice nada por si solo, asi que va tambien el motivo con
+  //   palabras y el `fwid` que se ha leido. Un nodo sin Bluetooth es aceptable; uno que no
+  //   explica por que, no.
+  d["bloqueado"] = gBloqueadoPorSd;
+  d["motivo"] = gBloqueadoPorSd ? "no hay SoftDevice en la flash (el USB no se ha tocado)"
+                                : (bleLinkUp() ? "ok" : "no arrancado");
+  d["fwid"] = softdeviceFwidLeido();
+  d["fwidReq"] = (uint16_t)SD_ESPERADO_FWID;
+  // ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ Si el `fwid` NO es el de este build, el Bluetooth se intenta arrancar igual (ver
+  //   `softdevicePareceValido()`): esto lo dice para que la app pueda enseÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â±arlo.
+  d["fwidCoincide"] = softdeviceFwidEsElEsperado();
+  d["sdVale"] = softdevicePareceValido();
+  d["sdFicha"] = softdeviceTamanoFicha();
+  d["sdTamano"] = softdeviceTamanoLeido();
+  d["mtu"] = bleMtu();
+  d["peer"] = blePeerAddr();
+  d["pinReq"] = blePinRequired();
+  d["err"] = bleLastStartErr();
+  d["in"] = bleBytesIn();
+  d["out"] = bleBytesOut();
+  d["drop"] = blePerdidos() + bleAnilloPerdidos();
+  d["pide"] = bleSolicitudesPin();
+  d["ok"] = blePinOk();
+  d["mal"] = blePinMal();
+}
+}  // namespace
+
+void bleLinkInit() {
+  protocolSalidaBle(&salidaParaProtocolo, true);
+  protocolEstadoBle(&estadoParaProtocolo);
+  if (gCfg == nullptr) return;
+  construyeNombre();
+
+  const bool logAntes = flogEnabled();
+  if (!gCfg->bleEnabled) {
+    gEnabled = false;
+    flogLine("BLE apagado (bleEnabled=false al arrancar)");
+    if (!tncActive()) Serial.println(F("BLE apagado (bleEnabled=false)"));
+    flogSetEnabled(logAntes);
+    return;
+  }
+
+  // Las seis marcas "BLE inicio n/6" las escriben bleAplica()/bleArrancaStack() con el
+  // mecanismo normal del registro. Hacen falta porque el puerto USB puede desaparecer a
+  // mitad del arranque: LA ULTIMA MARCA DEL REGISTRO ES EL PASO DONDE SE QUEDO EL NODO, y es
+  // la unica forma de verlo cuando no hay instrumentos.
+  bleAplica(true);
+  flogSetEnabled(logAntes);
+}
+
+void bleLoop() {
+  if (gCfg == nullptr) return;
+  const uint32_t ahora = millis();
+  // A partir de aqui el nodo esta EN MARCHA: el puerto del cable es de la app y del
+  // configurador, y las lineas de suceso del Bluetooth dejan de salir por el (ver bleLog).
+  gEnMarcha = true;
+
+  // El interruptor (menu de pantalla, configurador web, `set bleEnabled 0`) se aplica AQUI,
+  // sin reiniciar: apagarlo para el advertising en el acto.
+  if (gCfg->bleEnabled != gEnabled) bleAplica(gCfg->bleEnabled);
+
+  if (gStackUp) {
+    bleVigilaConfig();
+    // La entrada se cobra EN EL BUCLE (nunca en la tarea del SoftDevice): de aqui sale la
+    // ejecucion de un comando, y ejecutar dentro de la tarea de BLE seria pintar o escribir
+    // la flash desde otro hilo.
+    if (gEntN > 0) {
+      const size_t n = gEntN;
+      gEntN = 0;
+      gTrozosIn++;
+      gBytesIn += (uint32_t)n;
+      if (gEntDesbordado) {
+        gEntDesbordado = false;
+        gPerdidos++;
+        bleLog("entrada perdida: el huesped escribio mas rapido que el bucle");
+      }
+      bleHostFeed(gEnt, n);  // al MISMO receptor de lineas que el USB
+    }
+    colaEmpuja(ahora);
+  }
+  bleAvisos(ahora);
+}
+
+bool bleLinkUp() { return gStackUp && gServicioUp; }
+
+size_t bleLinkWrite(const uint8_t *datos, size_t n, uint32_t esperaMs) {
+  // Sin datos = "vacia lo que quede y vuelve". Es lo que usa el aviso de reinicio, que tiene
+  // que asegurarse de que el "REBOOT" ha salido antes de resetear.
+  if (datos == nullptr) {
+    bleLinkFlush(esperaMs);
+    return 0;
+  }
+  if (!bleLinkUp() || n == 0) return 0;
+  if (!hostListo()) return 0;  // nadie escucha: no es un error y no se cuenta
+
+  if (!colaPush(datos, n)) {
+    gPerdidos++;
+    bleLog("respuesta de %ub descartada: cola llena", (unsigned)n);
+    return 0;
+  }
+  colaEmpuja(millis());
+
+  // Espera FINITA: solo la usa quien escribe en bloque sin poder volver al bucle (el
+  // `log dump`). Nunca es una espera infinita, asi que no puede colgar el nodo.
+  if (esperaMs > 0) {
+    const uint32_t t0 = millis();
+    while (colaBytes() > 0 && (uint32_t)(millis() - t0) < esperaMs) {
+      colaEmpuja(millis());
+      delay(1);
+    }
+  }
+  return n;
+}
+
+size_t bleLinkWrite(const char *texto, uint32_t esperaMs) {
+  if (texto == nullptr) return 0;
+  return bleLinkWrite((const uint8_t *)texto, strlen(texto), esperaMs);
+}
+
+/* Deja salir lo que este en la cola, sin escribir nada nuevo. Lo usa el aviso de reinicio:
+   hay que asegurarse de que el "REBOOT" ha salido antes de resetear, y por Bluetooth eso
+   tarda unos milisegundos. La espera es CORTA Y FINITA a proposito. */
+void bleLinkFlush(uint32_t esperaMs) {
+  const uint32_t t0 = millis();
+  while (colaBytes() > 0 && (uint32_t)(millis() - t0) < esperaMs) {
+    colaEmpuja(millis());
+    delay(1);
+  }
+}
+
+void bleOutputFrameText(const char *textFrame) {
+  if (!bleLinkUp() || textFrame == nullptr || textFrame[0] == '\0') return;
+  if (!hostListo()) return;  // nadie escuchando: no es un error y no se cuenta
+
+  // ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ MISMO FORMATO QUE POR EL CABLE, y por eso el Bluetooth "hace lo mismo" que el USB:
+  //   - selector en KISS (2): trama AX.25 binaria con enmarque KISS, igual que el USB;
+  //   - selector en TNC2 (1): la linea de texto tal cual;
+  //   - selector apagado (0): NADA (el nodo no tiene puente al huesped: ni por cable ni por
+  //     aire). Es el comportamiento que ya tenia el cable y no se toca.
+  if (tncKissActive()) {
+    uint8_t salida[(2 * (AX25_MAX_INFO + 80)) + 4];
+    const size_t n = tncBuildKissFrame(textFrame, salida, sizeof(salida));
+    if (n == 0) {
+      gPerdidos++;  // el motivo ya lo dejo escrito tncBuildKissFrame
+      return;
+    }
+    if (bleLinkWrite(salida, n, 0) != n) gPerdidos++;
+    return;
+  }
+  if (tncTnc2Active()) {
+    bleLinkWrite(textFrame, 0);
+    bleLinkWrite("\r\n", 0);
+  }
+}
+
+void bleShutdown() {
+  if (!gStackUp) return;
+  Bluefruit.Advertising.restartOnDisconnect(false);
+  if (Bluefruit.Advertising.isRunning()) Bluefruit.Advertising.stop();
+  if (gConnHandle != BLE_CONN_HANDLE_INVALID) {
+    Bluefruit.disconnect(gConnHandle);
+    delay(100);  // darle al movil la oportunidad de enterarse
+  }
+  gConnHandle = BLE_CONN_HANDLE_INVALID;
+  gStackUp = false;
+  gServicioUp = false;
+  gEnabled = false;
+  gEntN = 0;
+  colaReset();
+  // ÃƒÆ’Ã‚Â¢Ãƒâ€¹Ã…â€œÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦ El SoftDevice TIENE que estar abajo antes de System OFF o de un reinicio (power.cpp
+  //   escribe NRF_POWER->SYSTEMOFF directamente): si sigue arriba, la radio y el LFCLK se
+  //   quedan encendidos y el consumo del sueno no es el que suponen las cuentas de la
+  //   bateria. Ademas `rtcSleepBlocks()` duerme con __WFE, y con el stack arriba eso no
+  //   seria un sueno tranquilo.
+  sd_softdevice_disable();
+}
+
+bool bleSoftDeviceIsp() { return gStackUp; }
+
+bool bleBloqueadoPorSoftDevice() { return gBloqueadoPorSd; }
+
+uint16_t bleSoftDeviceFwid() { return softdeviceFwidLeido(); }
+
+uint8_t bleStateCode() {
+  if (!bleLinkUp()) return 0;
+  if (gConnHandle == BLE_CONN_HANDLE_INVALID) return 1;
+  return hostListo() ? 3 : 2;
+}
+
+const char *bleStateText(uint8_t codigo) {
+  switch (codigo) {
+    case 1: return "anunciando";
+    case 2: return "huesped dentro";
+    case 3: return "huesped listo";
+    default: return "apagado";
+  }
+}
+
+const char *bleAdvName() { return gAdvName; }
+int bleLastStartErr() { return gErrArranque; }
+uint16_t bleMtu() { return mtuActual(); }
+const char *blePeerAddr() { return gPeerAddr; }
+bool blePinRequired() { return gRequierePin; }
+
+uint32_t bleTrozosIn() { return gTrozosIn; }
+uint32_t bleBytesIn() { return gBytesIn; }
+uint32_t bleTrozosOut() { return gTrozosOut; }
+uint32_t bleBytesOut() { return gBytesOut; }
+uint32_t blePerdidos() { return gPerdidos + gRechazos; }
+uint32_t bleSolicitudesPin() { return gSolicitudes; }
+uint32_t blePinOk() { return gPinOk; }
+uint32_t blePinMal() { return gPinMal; }
+int16_t bleUltimoPin() { return gUltimoPin; }

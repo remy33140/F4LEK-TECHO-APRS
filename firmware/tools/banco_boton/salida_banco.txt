@@ -1,0 +1,98 @@
+Compilador: C:\Users\Jesus\Desktop\LoRa_APRS_iGate-main\_trabajo_ea2oy\tools\banco_boton\..\..\..\_tmp_zig\zigpkg\ziglang\zig.exe c++
+
+--- compilando el CODIGO ANTERIOR (button_antes.cpp, de git) ---
+--- compilando el CODIGO NUEVO (src/button.cpp) ---
+
+======================================================================
+========== BANCO DEL BOTON - CODIGO ANTERIOR (el que estaba en git) ==========
+tabla de plazos (del fichero anterior): antirrebote=25  largo=600  ventana doble=800 ms
+(la ventana se medIa de SUELTA a SUELTA, y el corto no miraba si el boton estaba pulsado)
+lectura del pin: a 1 ms MIENTRAS el bucle corre; CERO mientras el panel pinta o la radio emite
+
+1. Toque corto CAIDO DENTRO de un refresco de tinta (1,5 s)
+   (el caso que se perdia: nadie miraba el pin mientras el panel pintaba)
+   >>> NINGUNA ACCION: el toque se ha PERDIDO
+
+2. Toque corto con el nodo en reposo (sin refresco)
+   (latencia pura de la logica: cuando se decide el gesto)
+   accion: CORTO  t=1881 ms
+
+3. Doble toque comodo (2o empieza 370 ms despues de soltar)
+   (el gesto que al operador le cuesta)
+   accion: DOBLE  t=1530 ms
+
+4. Doble toque lento (2o empieza 700 ms despues de soltar)
+   (aqui la tabla de plazos se contradecia)
+   accion: CORTO  t=1881 ms
+   accion: CORTO  t=2751 ms
+   >>> 2 acciones para un solo gesto
+
+5. Pulsacion LARGA caida dentro de un refresco de tinta (1,5 s)
+   (abrir el menu con el panel pintando)
+   >>> NINGUNA ACCION: el toque se ha PERDIDO
+
+6. TACTIL: la pastilla se dispara con el RF de NUESTRA transmision
+   (toque FANTASMA: nadie ha tocado (fenomeno conocido de esta placa))
+   accion: TACTIL  t=3300 ms
+
+7. TACTIL: ruido (4 chispas) y luego un toque de verdad
+   (un roce no puede valer por cuatro acciones)
+   accion: TACTIL  t=1000 ms
+   accion: TACTIL  t=1008 ms
+   accion: TACTIL  t=1017 ms
+   accion: TACTIL  t=1026 ms
+   accion: TACTIL  t=1100 ms
+   >>> 5 acciones para un solo gesto
+
+8. Boton FISICO durante una transmision de 700 ms
+   (el fisico NO se filtra nunca: si el operador pulsa, es el)
+   >>> NINGUNA ACCION: el toque se ha PERDIDO
+
+======================================================================
+========== BANCO DEL BOTON - CODIGO NUEVO (T-Echo Project Butter) ==========
+tabla de plazos (de src/button.h): antirrebote=25  largo=600  ventana doble=600 ms
+lectura del pin: interrupcion (GPIOTE) + bombeo cada 2 ms dentro del refresco
+
+1. Toque corto CAIDO DENTRO de un refresco de tinta (1,5 s)
+   (el caso que se perdia: nadie miraba el pin mientras el panel pintaba)
+   aviso inmediato al pulsar (luz + pitido): t=1226 ms
+   accion: CORTO  t=2500 ms
+
+2. Toque corto con el nodo en reposo (sin refresco)
+   (latencia pura de la logica: cuando se decide el gesto)
+   aviso inmediato al pulsar (luz + pitido): t=1025 ms
+   accion: CORTO  t=1681 ms
+
+3. Doble toque comodo (2o empieza 370 ms despues de soltar)
+   (el gesto que al operador le cuesta)
+   aviso inmediato al pulsar (luz + pitido): t=1475 ms
+   accion: DOBLE  t=1475 ms
+
+4. Doble toque lento (2o empieza 700 ms despues de soltar)
+   (aqui la tabla de plazos se contradecia)
+   aviso inmediato al pulsar (luz + pitido): t=1805 ms
+   accion: CORTO  t=1681 ms
+   accion: CORTO  t=2551 ms
+   >>> 2 acciones para un solo gesto
+
+5. Pulsacion LARGA caida dentro de un refresco de tinta (1,5 s)
+   (abrir el menu con el panel pintando)
+   aviso inmediato al pulsar (luz + pitido): t=1226 ms
+   accion: LARGO  t=2500 ms
+
+6. TACTIL: la pastilla se dispara con el RF de NUESTRA transmision
+   (toque FANTASMA: nadie ha tocado (fenomeno conocido de esta placa))
+   >>> NINGUNA ACCION: el toque se ha PERDIDO
+
+7. TACTIL: ruido (4 chispas) y luego un toque de verdad
+   (un roce no puede valer por cuatro acciones)
+   accion: TACTIL  t=1140 ms
+
+8. Boton FISICO durante una transmision de 700 ms
+   (el fisico NO se filtra nunca: si el operador pulsa, es el)
+   aviso inmediato al pulsar (luz + pitido): t=3650 ms
+   accion: CORTO  t=3681 ms
+
+======================================================================
+RECORDATORIO: esto mide la LOGICA del boton. Los 0,35-2 s del panel de tinta
+se suman aparte (ver docs/PROYECTO_BUTTER_TECHO.md).

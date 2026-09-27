@@ -1,0 +1,297 @@
+BANCO DEL USB DURANTE EL REPINTADO DE LA PANTALLA (T-Echo Project Butter II)
+Compilador: C:\Users\Jesus\Desktop\LoRa_APRS_iGate-main\_trabajo_ea2oy\tools\banco_usb\..\..\..\_tmp_zig\zigpkg\ziglang\zig.exe c++
+
+======================================================================
+====== BANCO DEL USB - CODIGO ANTERIOR (el feed() de git, sin bombeo) ======
+el puerto se lee SOLO en la cabecera del bucle; durante el repintado, NADA
+FIFO del CDC = 256 bytes (CFG_TUD_CDC_RX_BUFSIZE) | paquete USB = 64 B por ms
+vuelta del bucle: cuerpo 20 ms + cola 5 ms | el driver bombea cada 2 ms
+
+1. Comando CORTO (17 B) que llega mientras el panel pinta un parcial (1,5 s)
+   (el caso del operador: un `status` pedido con la pantalla ocupada)
+   el host manda 17 bytes en t=100 ms
+   linea atendida: t=1506 ms  16 bytes  -> ENTERA
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 0
+   maximo encolado de una vez (anillo)         : 0
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+2. Comando LARGO (1,4 KB: el `set` del configurador) durante el repintado, con
+   trafico APRS: el panel vuelve a estar sucio en CADA vuelta (parcial de 1,5 s)
+   (aqui el FIFO de 256 B se queda corto: hacen falta VARIAS vueltas del bucle)
+   el host manda 1384 bytes en t=100 ms
+   linea atendida: t=9136 ms  1383 bytes  -> ENTERA
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 0
+   maximo encolado de una vez (anillo)         : 0
+   el host acaba de escribir en t              : 7612 ms
+   el host BLOQUEADO esperando al nodo         : 7490 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+3. El mismo comando LARGO (1,4 KB) con el nodo en reposo (el panel no repinta)
+   (control: sin repintados de por medio)
+   el host manda 1384 bytes en t=100 ms
+   linea atendida: t=234 ms  1383 bytes  -> ENTERA
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 0
+   maximo encolado de una vez (anillo)         : 0
+   el host acaba de escribir en t              : 210 ms
+   el host BLOQUEADO esperando al nodo         : 88 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+4. Comando CORTO durante un COMPLETO forzado (2,5 s)
+   (el repintado mas largo que hay (tope de parciales o cambio de rotacion en caliente))
+   el host manda 17 bytes en t=100 ms
+   linea atendida: t=2506 ms  16 bytes  -> ENTERA
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 0
+   maximo encolado de una vez (anillo)         : 0
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+5. TRAMA KISS (con un 0x0A, un 0xC0 y un 0xDB DENTRO) durante el repintado
+   (la regla del 0xC0: el binario se CUENTA y no se interpreta, y llega intacto)
+   el host manda 25 bytes en t=100 ms
+   >>> NINGUNA LINEA ATENDIDA
+   KISS: tramas entregadas=1  cuerpo=20/20 bytes -> INTACTA
+   KISS: entregada al manejador en t=1506 ms
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 0
+   maximo encolado de una vez (anillo)         : 0
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+6. En modo KISS, una linea JSON normal durante el repintado (sin trama abierta)
+   (la convivencia por bytes: el texto tiene que seguir funcionando con KISS puesto)
+   el host manda 17 bytes en t=100 ms
+   linea atendida: t=1506 ms  16 bytes  -> ENTERA
+   KISS: NO ha llegado ninguna trama
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 0
+   maximo encolado de una vez (anillo)         : 0
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+7. Trama KISS y, DETRAS, una linea JSON en el MISMO golpe de escritura
+   (esto NO es del cambio: la maquina KISS reabre trama en el FEND de cierre, asi que el
+   texto de detras se lo come. Tiene que salir IGUAL antes y despues (no se toca))
+   el host manda 42 bytes en t=100 ms
+   >>> NINGUNA LINEA ATENDIDA
+   KISS: tramas entregadas=1  cuerpo=20/20 bytes -> INTACTA
+   KISS: entregada al manejador en t=1506 ms
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 0
+   maximo encolado de una vez (anillo)         : 0
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+======================================================================
+======= BANCO DEL USB - CODIGO NUEVO (T-Echo Project Butter II) ===========
+el driver LEE Y ENCOLA durante el repintado; el bucle EJECUTA al acabar
+FIFO del CDC = 256 bytes (CFG_TUD_CDC_RX_BUFSIZE) | paquete USB = 64 B por ms
+vuelta del bucle: cuerpo 20 ms + cola 5 ms | el driver bombea cada 2 ms
+
+1. Comando CORTO (17 B) que llega mientras el panel pinta un parcial (1,5 s)
+   (el caso del operador: un `status` pedido con la pantalla ocupada)
+   el host manda 17 bytes en t=100 ms
+   linea atendida: t=1500 ms  16 bytes  -> ENTERA
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 17
+   maximo encolado de una vez (anillo)         : 17
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+2. Comando LARGO (1,4 KB: el `set` del configurador) durante el repintado, con
+   trafico APRS: el panel vuelve a estar sucio en CADA vuelta (parcial de 1,5 s)
+   (aqui el FIFO de 256 B se queda corto: hacen falta VARIAS vueltas del bucle)
+   el host manda 1384 bytes en t=100 ms
+   linea atendida: t=1500 ms  1383 bytes  -> ENTERA
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 1384
+   maximo encolado de una vez (anillo)         : 1384
+   el host acaba de escribir en t              : 122 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+3. El mismo comando LARGO (1,4 KB) con el nodo en reposo (el panel no repinta)
+   (control: sin repintados de por medio)
+   el host manda 1384 bytes en t=100 ms
+   linea atendida: t=234 ms  1383 bytes  -> ENTERA
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 0
+   maximo encolado de una vez (anillo)         : 256
+   el host acaba de escribir en t              : 210 ms
+   el host BLOQUEADO esperando al nodo         : 88 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+4. Comando CORTO durante un COMPLETO forzado (2,5 s)
+   (el repintado mas largo que hay (tope de parciales o cambio de rotacion en caliente))
+   el host manda 17 bytes en t=100 ms
+   linea atendida: t=2500 ms  16 bytes  -> ENTERA
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 17
+   maximo encolado de una vez (anillo)         : 17
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+5. TRAMA KISS (con un 0x0A, un 0xC0 y un 0xDB DENTRO) durante el repintado
+   (la regla del 0xC0: el binario se CUENTA y no se interpreta, y llega intacto)
+   el host manda 25 bytes en t=100 ms
+   >>> NINGUNA LINEA ATENDIDA
+   KISS: tramas entregadas=1  cuerpo=20/20 bytes -> INTACTA
+   KISS: entregada al manejador en t=1500 ms
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 25
+   maximo encolado de una vez (anillo)         : 25
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+6. En modo KISS, una linea JSON normal durante el repintado (sin trama abierta)
+   (la convivencia por bytes: el texto tiene que seguir funcionando con KISS puesto)
+   el host manda 17 bytes en t=100 ms
+   linea atendida: t=1500 ms  16 bytes  -> ENTERA
+   KISS: NO ha llegado ninguna trama
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 17
+   maximo encolado de una vez (anillo)         : 17
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+7. Trama KISS y, DETRAS, una linea JSON en el MISMO golpe de escritura
+   (esto NO es del cambio: la maquina KISS reabre trama en el FEND de cierre, asi que el
+   texto de detras se lo come. Tiene que salir IGUAL antes y despues (no se toca))
+   el host manda 42 bytes en t=100 ms
+   >>> NINGUNA LINEA ATENDIDA
+   KISS: tramas entregadas=1  cuerpo=20/20 bytes -> INTACTA
+   KISS: entregada al manejador en t=1500 ms
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 42
+   maximo encolado de una vez (anillo)         : 42
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+======================================================================
+====== BANCO DEL USB - CONTRA-EJEMPLO (ejecutando desde el driver) =========
+ESTE NO ES EL FIRMWARE: sirve para comprobar que el banco DETECTA la reentrada
+FIFO del CDC = 256 bytes (CFG_TUD_CDC_RX_BUFSIZE) | paquete USB = 64 B por ms
+vuelta del bucle: cuerpo 20 ms + cola 5 ms | el driver bombea cada 2 ms
+
+1. Comando CORTO (17 B) que llega mientras el panel pinta un parcial (1,5 s)
+   (el caso del operador: un `status` pedido con la pantalla ocupada)
+   el host manda 17 bytes en t=100 ms
+   linea atendida: t=102 ms  16 bytes  -> ENTERA
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 17
+   maximo encolado de una vez (anillo)         : 17
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 1   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+2. Comando LARGO (1,4 KB: el `set` del configurador) durante el repintado, con
+   trafico APRS: el panel vuelve a estar sucio en CADA vuelta (parcial de 1,5 s)
+   (aqui el FIFO de 256 B se queda corto: hacen falta VARIAS vueltas del bucle)
+   el host manda 1384 bytes en t=100 ms
+   linea atendida: t=122 ms  1383 bytes  -> ENTERA
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 1384
+   maximo encolado de una vez (anillo)         : 128
+   el host acaba de escribir en t              : 122 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 1   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+3. El mismo comando LARGO (1,4 KB) con el nodo en reposo (el panel no repinta)
+   (control: sin repintados de por medio)
+   el host manda 1384 bytes en t=100 ms
+   linea atendida: t=234 ms  1383 bytes  -> ENTERA
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 0
+   maximo encolado de una vez (anillo)         : 256
+   el host acaba de escribir en t              : 210 ms
+   el host BLOQUEADO esperando al nodo         : 88 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+4. Comando CORTO durante un COMPLETO forzado (2,5 s)
+   (el repintado mas largo que hay (tope de parciales o cambio de rotacion en caliente))
+   el host manda 17 bytes en t=100 ms
+   linea atendida: t=102 ms  16 bytes  -> ENTERA
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 17
+   maximo encolado de una vez (anillo)         : 17
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 1   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+5. TRAMA KISS (con un 0x0A, un 0xC0 y un 0xDB DENTRO) durante el repintado
+   (la regla del 0xC0: el binario se CUENTA y no se interpreta, y llega intacto)
+   el host manda 25 bytes en t=100 ms
+   >>> NINGUNA LINEA ATENDIDA
+   KISS: tramas entregadas=1  cuerpo=20/20 bytes -> INTACTA
+   KISS: entregada al manejador en t=102 ms
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 25
+   maximo encolado de una vez (anillo)         : 25
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 1   <-- tiene que ser 0
+
+6. En modo KISS, una linea JSON normal durante el repintado (sin trama abierta)
+   (la convivencia por bytes: el texto tiene que seguir funcionando con KISS puesto)
+   el host manda 17 bytes en t=100 ms
+   linea atendida: t=102 ms  16 bytes  -> ENTERA
+   KISS: NO ha llegado ninguna trama
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 17
+   maximo encolado de una vez (anillo)         : 17
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 1   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 0   <-- tiene que ser 0
+
+7. Trama KISS y, DETRAS, una linea JSON en el MISMO golpe de escritura
+   (esto NO es del cambio: la maquina KISS reabre trama en el FEND de cierre, asi que el
+   texto de detras se lo come. Tiene que salir IGUAL antes y despues (no se toca))
+   el host manda 42 bytes en t=100 ms
+   >>> NINGUNA LINEA ATENDIDA
+   KISS: tramas entregadas=1  cuerpo=20/20 bytes -> INTACTA
+   KISS: entregada al manejador en t=102 ms
+   --- medidas -------------------------------------------------
+   bytes leidos del puerto DURANTE el repintado : 42
+   maximo encolado de una vez (anillo)         : 42
+   el host acaba de escribir en t              : 101 ms
+   el host BLOQUEADO esperando al nodo         : 0 ms
+   comandos EJECUTADOS DENTRO del repintado    : 0   <-- tiene que ser 0
+   tramas KISS ENTREGADAS dentro del repintado : 1   <-- tiene que ser 0
+
+======================================================================
+RECORDATORIO: esto mide la LECTURA del puerto y CUANDO se ejecuta el comando.
+El rato que el panel tarda en pintar es el mismo antes y despues (tinta electronica).

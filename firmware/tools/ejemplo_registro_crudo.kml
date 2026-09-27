@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>_audit</name>
+<Style id="line"><LineStyle><width>3</width><color>ff00a5ff</color></LineStyle></Style>
+<Placemark><name>Ruta</name><styleUrl>#line</styleUrl><LineString><altitudeMode>absolute</altitudeMode><coordinates>-140.02789,-29.99394,321 -140.02472,-29.99326,171 -140.025,-29.994,289 -140.02365,-29.99534,179 -140.02245,-29.99542,394 -140.02227,-29.99553,438 -140.02234,-29.99551,456 -140.02224,-29.99559,470 -140.02256,-29.99554,426 -140.02254,-29.99532,462 -140.02315,-29.99500,20 -140.02352,-29.99495,206 -140.02395,-29.99572,-10 -140.02329,-29.99485,70 -140.02314,-29.99588,387 -140.02265,-29.99558,447 -140.02251,-29.99548,480</coordinates></LineString></Placemark>
+<Placemark><name></name><Point><coordinates>-140.02789,-29.99394,321</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T01:35:19Z</name><Point><coordinates>-140.02472,-29.99326,171</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T01:37:00Z</name><Point><coordinates>-140.025,-29.994,289</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T01:50:20Z</name><Point><coordinates>-140.02365,-29.99534,179</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T11:00:28Z</name><Point><coordinates>-140.02245,-29.99542,394</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T11:15:29Z</name><Point><coordinates>-140.02227,-29.99553,438</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T11:30:29Z</name><Point><coordinates>-140.02234,-29.99551,456</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T11:45:30Z</name><Point><coordinates>-140.02224,-29.99559,470</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T12:00:31Z</name><Point><coordinates>-140.02256,-29.99554,426</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T12:15:32Z</name><Point><coordinates>-140.02254,-29.99532,462</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T12:30:32Z</name><Point><coordinates>-140.02315,-29.99500,20</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T12:49:34Z</name><Point><coordinates>-140.02352,-29.99495,206</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T13:04:34Z</name><Point><coordinates>-140.02395,-29.99572,-10</coordinates></Point></Placemark>
+<Placemark><name></name><Point><coordinates>-140.02329,-29.99485,70</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T13:15:39Z</name><Point><coordinates>-140.02314,-29.99588,387</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T13:30:40Z</name><Point><coordinates>-140.02265,-29.99558,447</coordinates></Point></Placemark>
+<Placemark><name>2026-09-13T13:45:41Z</name><Point><coordinates>-140.02251,-29.99548,480</coordinates></Point></Placemark>
+</Document></kml>

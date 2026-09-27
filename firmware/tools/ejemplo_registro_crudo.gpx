@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Faketec_APRS_Igate_EA2OY" xmlns="http://www.topografix.com/GPX/1/1">
+ <trk>
+  <name>_audit</name>
+  <trkseg>
+   <trkpt lat="-29.98" lon="-140.02"><ele>321</ele><speed>0.00</speed><course>0</course></trkpt>
+   <trkpt lat="-29.9801" lon="-140.0199"><ele>171</ele><time>2026-09-13T01:35:19Z</time><speed>2.17</speed><course>314</course></trkpt>
+   <trkpt lat="-29.9802" lon="-140.0198"><ele>289</ele><time>2026-09-13T01:37:00Z</time><speed>0.00</speed><course>313</course></trkpt>
+   <trkpt lat="-29.9803" lon="-140.0197"><ele>179</ele><time>2026-09-13T01:50:20Z</time><speed>0.00</speed><course>257</course></trkpt>
+   <trkpt lat="-29.9804" lon="-140.0196"><ele>394</ele><time>2026-09-13T11:00:28Z</time><speed>0.00</speed><course>0</course></trkpt>
+   <trkpt lat="-29.9805" lon="-140.0195"><ele>438</ele><time>2026-09-13T11:15:29Z</time><speed>0.31</speed><course>329</course></trkpt>
+   <trkpt lat="-29.9806" lon="-140.0194"><ele>456</ele><time>2026-09-13T11:30:29Z</time><speed>0.00</speed><course>146</course></trkpt>
+   <trkpt lat="-29.9807" lon="-140.0193"><ele>470</ele><time>2026-09-13T11:45:30Z</time><speed>0.00</speed><course>296</course></trkpt>
+   <trkpt lat="-29.9808" lon="-140.0192"><ele>426</ele><time>2026-09-13T12:00:31Z</time><speed>0.00</speed><course>333</course></trkpt>
+   <trkpt lat="-29.9809" lon="-140.0191"><ele>462</ele><time>2026-09-13T12:15:32Z</time><speed>0.31</speed><course>327</course></trkpt>
+   <trkpt lat="-29.981" lon="-140.019"><ele>20</ele><time>2026-09-13T12:30:32Z</time><speed>0.31</speed><course>170</course></trkpt>
+   <trkpt lat="-29.9811" lon="-140.0189"><ele>206</ele><time>2026-09-13T12:49:34Z</time><speed>0.00</speed><course>0</course></trkpt>
+   <trkpt lat="-29.9812" lon="-140.0188"><ele>-10</ele><time>2026-09-13T13:04:34Z</time><speed>0.00</speed><course>205</course></trkpt>
+   <trkpt lat="-29.9813" lon="-140.0187"><ele>70</ele><speed>0.00</speed><course>0</course></trkpt>
+   <trkpt lat="-29.9814" lon="-140.0186"><ele>387</ele><time>2026-09-13T13:15:39Z</time><speed>0.00</speed><course>0</course></trkpt>
+   <trkpt lat="-29.9815" lon="-140.0185"><ele>447</ele><time>2026-09-13T13:30:40Z</time><speed>0.00</speed><course>124</course></trkpt>
+   <trkpt lat="-29.9816" lon="-140.0184"><ele>480</ele><time>2026-09-13T13:45:41Z</time><speed>0.00</speed><course>170</course></trkpt>
+  </trkseg>
+ </trk>
+</gpx>

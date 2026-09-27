@@ -1,0 +1,172 @@
+// ble_kiss.h — ENLACE BLUETOOTH LE: el Nordic UART Service (NUS) como segundo puerto serie.
+//
+// ★★ QUE ES ESTO, EN UNA FRASE ★★
+// El Bluetooth es un SEGUNDO PUERTO SERIE del nodo, exactamente igual que el cable USB: lo
+// que la app escribe por el llega al MISMO receptor de lineas (usb_lector.cpp) y las
+// respuestas salen por el mismo despacho (protocol.cpp), asi que **por Bluetooth se puede
+// hacer todo lo que se hace por USB menos grabar el firmware** (el modo grabacion UF2
+// necesita el cable y se RECHAZA por aqui: ver `dfu` en cli.cpp y en protocol.cpp).
+//
+// ★★ POR QUE NO ES UN PROTOCOLO NUEVO ★★
+// Antes de esto, el Bluetooth tenia su propio camino: metia los bytes en un KISS propio
+// (kiss.cpp) y solo funcionaba con el selector `tncProtocol` en KISS. Con el selector apagado
+// (el caso normal) la app no podia mandar NADA, y aunque lo hubiera estado, por ahi no viaja
+// el JSON ni el CLI: la app habria visto un nodo mudo. Aqui NO se reimplementa el troceado ni
+// el parseo: los bytes entran en `UsbLector::empujaBle()` y el unico sitio que decide que es
+// KISS, que es texto y donde acaba una linea sigue siendo `UsbLector::meteByte()`.
+//
+// ★★ POR QUE EL NOMBRE LLEVA `kiss` (y por que NO se llama ble.h) ★★
+//   * NO se puede llamar `src/ble.h`: `bluefruit_common.h` hace `#include "ble.h"` para
+//     llegar a la cabecera del SoftDevice, y `src/` esta en el camino de busqueda del
+//     compilador, asi que un `src/ble.h` TAPA el de Nordic y rompe toda la libreria
+//     Bluefruit (comprobado: desaparecen `ble_evt_t` y `BLE_CONN_HANDLE_INVALID`).
+//   * El nombre historico es este y el fichero conserva la pareja de pruebas del proyecto
+//     (tools/ble_kiss.html y tools/ble_kiss_server.js).
+//
+// ★★ SEGURIDAD: PIN y MITM (2026-09-17) ★★
+// El PIN de 6 digitos de `cfg.blePin` se le da al SoftDevice; el nodo es "solo pantalla" (no
+// tiene teclado), asi que el movil pregunta y el nodo ENSENA el PIN en su pantalla mientras
+// dura el intento (aviso de emparejamiento, se quita solo). **Con PIN valido las dos
+// caracteristicas exigen enlace cifrado con proteccion MITM**: un dispositivo que no haya
+// emparejado no puede ni leer ni escribir NADA, ni el CCCD que enciende los avisos.
+// Sin PIN valido (vacio o no son 6 digitos) el enlace queda abierto a proposito y el nodo lo
+// deja escrito: es la unica forma de que la app pueda entrar sin teclado ni PIN que ensenar.
+//
+// ★★ LO QUE COSTO Y POR QUE ESTUVO APAGADO (leer antes de tocar) ★★
+// El Bluetooth se apago el 2026-09-13 porque el nodo se quedaba BLOQUEADO (sin pantalla y sin
+// USB) al arrancarlo. La causa raiz esta medida y escrita en
+// `..\_BLE_DIAG\CAUSA_RAIZ.md`, y NO era el codigo de Bluetooth:
+//
+//   **El SoftDevice grabado en aquel chip no era valido**, asi que `sd_softdevice_enable()`
+//   fallaba con 4097 (NRF_ERROR_INVALID_STATE) y `Bluefruit.begin()` devolvia false.
+//
+// Y el fallo se convertia en un nodo bloqueado por DOS efectos encadenados del nucleo de
+// Adafruit, que es lo que aqui se arregla:
+//   1) `Bluefruit.begin()` EMPIEZA desmontando el USB de TinyUSB para cederle el periferico
+//      POWER al SoftDevice (`usb_softdevice_pre_enable()`), y el SoftDevice solo se lo
+//      devuelve al final si ha arrancado bien (`usb_softdevice_post_enable()`). Si
+//      `sd_softdevice_enable()` falla, el USB se queda **enumerado y mudo** y el nodo sin
+//      puerto serie: exactamente lo que veia el operador.
+//      ★★ MEDIDO EN LA PLACA CON EL b25 (2026-09-17): esto NO se arregla recuperando el USB
+//         despues. Con `bleEnabled=1` guardado y un SoftDevice que no arranca, el nodo se
+//         quedo en un IR Y VENIR del puerto USB y sin consola, y la recuperacion a mano
+//         (`usbRearma()`) NO lo salvo. **Lo unico que funciona es NO LLEGAR A DESMONTARLO**,
+//         y de eso se encarga la SONDA DEL SOFTDEVICE: se lee su `fwid` de la flash
+//         (**0x300C** = MBR_SIZE 0x1000 + 0x2000 + 0x0C, offsets de `nrf_sdm.h`; ojo, NO
+//         0x200C: el offset de la cabecera es relativo al inicio del SoftDevice y lo que hay
+//         en 0x200C es codigo suyo — ver el bloque de `ble_kiss.cpp`) ANTES de llamar a
+//         `Bluefruit.begin()`, y si no es el que este firmware espera, **no se llama y al USB
+//         no se le toca nada**.
+//         `usbRearma()` se queda solo como ultima red para un fallo distinto.
+//   2) El sensor de temperatura del chip se leia por registro directo (`NRF_TEMP`), y TEMP es
+//      uno de los perifericos que el SoftDevice se reserva
+//      (`__NRF_NVIC_SD_IRQS_0` en nrf_nvic.h): leerlo con el stack arriba da un
+//      PERIPH_ACCESS. Arreglado en sensors.cpp (rama `sd_temp_get()`).
+//
+// Y ademas, el SoftDevice solo se puede arrancar si esta GRABADO y es la version del entorno:
+// la aplicacion vive en 0x26000 con S140 v6 y en 0x27000 con la v7. En vez de darlo por
+// hecho, el nodo lo deja dicho: el comando `ble` por consola y el objeto `status.ble` del
+// comando `status` publican el estado real y el ultimo error de arranque.
+//
+// License: GPL-3.0
+
+#pragma once
+
+#include <Arduino.h>
+
+#include "config.h"
+#include "usb_lector.h"   // UsbLector: el receptor de lineas compartido con el cable
+
+// Cuanto puede esperar `bleLinkWrite()` a que la cola de avisos se vacie. En el bucle normal
+// no se espera nada (el aviso se encola y `bleLoop()` lo empuja), asi que este tope solo se
+// usa cuando alguien escribe en bloque sin poder volver al bucle: el `log dump` del CLI.
+// Es FINITO a proposito: ninguna escritura del firmware puede colgar el nodo.
+constexpr uint32_t kEsperaEscrituraBleMs = 3000;
+
+// Engancha la configuracion viva (una vez, al arrancar, despues de leerla de la flash).
+void bleBindConfig(DigiConfig *cfg);
+
+// Arranca el Bluetooth si `cfg.bleEnabled` esta encendido. Se llama UNA vez, al final del
+// setup y DESPUES de la pantalla y del registro de viaje (el aviso del PIN se pinta en la
+// pantalla y cada suceso deja una linea "BLE ..." en el registro). Con el ajuste apagado no
+// hace absolutamente nada: ni toca el SoftDevice. Es tambien quien registra en el protocolo
+// la puerta de salida y el objeto de estado del Bluetooth (ver protocol.h).
+void bleLinkInit();
+
+// Una vez por vuelta del bucle: saca al aire lo que haya en la cola de avisos, cobra lo que
+// haya escrito el huesped y resuelve el aviso del PIN. No bloquea y no toca la radio.
+void bleLoop();
+
+// El enlace esta arrancado y anunciando (o con un huesped dentro). Es lo que mira el
+// protocolo para decidir si el comando que acaba de entrar puede mandar su respuesta por aqui.
+bool bleLinkUp();
+
+// Empuja por el Bluetooth lo que el protocolo contesta a un comando que entro por aqui (una
+// respuesta por linea, texto terminado en LF; los avisos van troceados al tamano del enlace).
+// `esperaMs` = 0 significa "encola y sigue" (lo normal). Devuelve los bytes aceptados.
+// Con `datos == nullptr` NO escribe nada: vacia lo que quede en la cola (ver bleLinkFlush).
+size_t bleLinkWrite(const uint8_t *datos, size_t n, uint32_t esperaMs = 0);
+size_t bleLinkWrite(const char *texto, uint32_t esperaMs = 0);
+
+// Deja salir lo que quede en la cola de avisos, SIN escribir nada nuevo. Lo usa el aviso de
+// reinicio (hay que asegurarse de que "REBOOT" ha salido antes de resetear). Espera corta y
+// finita: si el enlace esta atascado se pierde el aviso, pero el nodo no se cuelga.
+void bleLinkFlush(uint32_t esperaMs);
+
+// Ofrece al huesped una trama oida por la radio, en el MISMO formato que usa el cable: KISS
+// binario si el selector del TNC esta en KISS y texto TNC2 si esta en TNC2 (con el selector
+// apagado no manda nada, igual que el cable). Lo llama tncOutputFrame(), que es el unico
+// sitio por el que "una trama va al huesped".
+void bleOutputFrameText(const char *textFrame);
+
+// Baja el Bluetooth: deja de anunciar, echa al huesped y APAGA el SoftDevice. Hace falta
+// antes de dormir (power.cpp): con el SoftDevice arriba la radio y el LFCLK siguen vivos y el
+// consumo del sueno no es el que suponen las cuentas de la bateria. Se puede llamar siempre,
+// aunque el Bluetooth no haya arrancado nunca: la funcion se sale sola.
+void bleShutdown();
+
+// El SoftDevice esta arriba. Lo necesitan los modulos que tienen que usar la API del stack
+// para los perifericos que este se reserva: la temperatura del chip (sensors.cpp) es uno.
+bool bleSoftDeviceIsp();
+
+/* ★★ SI EL BLUETOOTH NO ARRANCO POR EL SOFTDEVICE, QUE SE SEPA (2026-09-17, b26) ★★
+   Cierto cuando el nodo NO ha arrancado el Bluetooth A PROPOSITO porque el SoftDevice grabado
+   no es el que este firmware espera. **No es un fallo del nodo**: es la proteccion que evita
+   que se le toque el USB a un arranque que no va a funcionar. Medido en la placa con el b25:
+   con un SoftDevice invalido el nodo se quedaba en un ir y venir del puerto USB y sin consola,
+   y la recuperacion no lo salvaba. Con esto, `Bluefruit.begin()` NO se llama y el USB no se
+   toca en ningun momento: el nodo sigue entero (cable, radio, pantalla y registro), solo que
+   sin Bluetooth.
+   `bleSoftDeviceFwid()` devuelve el `fwid` leido de la flash (**0x300C**: MBR_SIZE 0x1000 +
+   0x2000 + 0x0C, offsets de `nrf_sdm.h`), que es el dato con el que se decide. Los dos salen
+   por el comando `ble` y por `status.ble`, para que el operador pueda enterarse sin el cable. */
+bool bleBloqueadoPorSoftDevice();
+uint16_t bleSoftDeviceFwid();
+
+// --- estado y diagnostico (comando `ble` del CLI y objeto `status.ble`) ---
+//   0 = apagado, 1 = anunciando, 2 = huesped dentro, 3 = huesped listo (avisos encendidos)
+uint8_t bleStateCode();
+const char *bleStateText(uint8_t codigo);
+const char *bleAdvName();
+int bleLastStartErr();   // ultimo fallo de arranque (0 = bien; -1 begin, -2 NUS, -3 advertising)
+uint16_t bleMtu();       // MTU negociado (0 sin huesped)
+const char *blePeerAddr();
+bool blePinRequired();   // el enlace exige PIN (MITM) o esta abierto
+
+// Contadores desde el arranque. Cuentan TROZOS y BYTES, no comandos: un aviso es un trozo del
+// enlace, y una orden del huesped puede venir en varios trozos. Es lo que hace falta para
+// saber de QUE LADO esta un problema.
+uint32_t bleTrozosIn();    // escrituras aceptadas del huesped
+uint32_t bleBytesIn();     // bytes que ha mandado el huesped
+uint32_t bleTrozosOut();   // avisos que han salido de verdad
+uint32_t bleBytesOut();    // bytes que han salido por el aire
+uint32_t blePerdidos();    // bytes sin sitio en la cola + avisos que rechazo el stack
+uint32_t bleSolicitudesPin();
+uint32_t blePinOk();
+uint32_t blePinMal();
+int16_t bleUltimoPin();    // ultimo BLE_GAP_SEC_STATUS_* (-1 = ninguno)
+
+// Resumen de una linea para el comando `ble` del CLI (la herramienta con la que se comprueba
+// el enlace SIN tener que mirarlo desde un movil). Vive aqui porque es lo unico que sabe
+// todos estos numeros, y el CLI no tiene por que saber nada del SoftDevice.
+String bleResumen();

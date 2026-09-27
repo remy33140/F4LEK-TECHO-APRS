@@ -1,0 +1,252 @@
+% ============================================================================
+% plantilla_kacho.tex - Plantilla de los manuales del proyecto Kacho System
+%   (Kacho System = el firmware APRS-LoRa de EA2OY para nRF52840 a 433 MHz)
+%
+% Estetica "panel de control": fondo azul marino, texto claro, dorado para los
+% titulos y verde para los acentos. Es la MISMA paleta que el configurador web
+% (web/index.html), para que el papel y la pantalla se parezcan.
+%
+% Aprendida del proyecto NavaTastic del propio operador (plantilla_navatastic.tex),
+% que a su vez recoge varias lecciones aprendidas a golpes:
+%   - El cartel de portada se copia a una ruta SIN ESPACIOS (XeLaTeX y
+%     \includegraphics se pelean con los espacios). Aqui no hay cartel: el logo se
+%     DIBUJA en vector, asi que ese problema no existe.
+%   - Fondo oscuro y tablas: hay que forzar el color del texto o las tablas salen
+%     con letra oscura sobre fondo oscuro (ilegible).
+%   - Los emojis necesitan su propia fuente, o XeLaTeX aborta.
+% ============================================================================
+
+$document-metadata.latex()$
+$passoptions.latex()$
+\documentclass[
+$for(babel-otherlangs)$
+  $babel-otherlangs$,
+$endfor$
+$if(babel-lang)$
+  $babel-lang$,
+$endif$
+$if(fontsize)$
+  $fontsize$,
+$endif$
+$if(papersize)$
+  $papersize$paper,
+$endif$
+$for(classoption)$
+  $classoption$$sep$,
+$endfor$
+]{$documentclass$}
+
+\usepackage{xcolor}
+$if(geometry)$
+\usepackage[$for(geometry)$$geometry$$sep$,$endfor$]{geometry}
+$endif$
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+
+% --- Paleta Kacho System (la misma del configurador web) ---
+\definecolor{kachoBg}{HTML}{0B131C}     % fondo azul marino
+\definecolor{kachoCard}{HTML}{131E2A}   % fondo de las cajas
+\definecolor{kachoLine}{HTML}{22303F}   % lineas suaves
+\definecolor{kachoText}{HTML}{E8F0F7}   % texto claro
+\definecolor{kachoMuted}{HTML}{8FA3B5}  % texto secundario
+\definecolor{kachoGold}{HTML}{D8B255}   % dorado: titulos
+\definecolor{kachoGreen}{HTML}{32D77B}  % verde: acentos
+\definecolor{kachoRed}{HTML}{C81D25}    % rojo: avisos
+\definecolor{kachoBlue}{HTML}{5AA9E6}   % azul: enlaces
+
+% --- Fondo oscuro de pagina y texto claro ---
+\pagecolor{kachoBg}
+\color{kachoText}
+\renewcommand{\normalcolor}{\color{kachoText}}
+
+% --- Fuentes (las del sistema, sin instalar nada) ---
+\usepackage{fontspec}
+\usepackage{graphicx}
+\setmainfont{Segoe UI}[
+  BoldFont=Segoe UI Bold,
+  ItalicFont=Segoe UI Italic,
+  BoldItalicFont=Segoe UI Bold Italic,
+  Ligatures=TeX
+]
+\setsansfont{Segoe UI}[
+  BoldFont=Segoe UI Bold,
+  ItalicFont=Segoe UI Italic
+]
+\setmonofont{Consolas}
+
+% Emojis: con su fuente, o XeLaTeX se atraganta. Solo los que se usan de verdad.
+\newfontfamily\emojifont{Segoe UI Emoji}
+\usepackage{newunicodechar}
+\newunicodechar{⚠}{\mbox{\emojifont ⚠}}
+\newunicodechar{️}{\mbox{\emojifont ️}}
+\newunicodechar{📡}{\mbox{\emojifont 📡}}
+\newunicodechar{🔋}{\mbox{\emojifont 🔋}}
+\newunicodechar{🛰}{\mbox{\emojifont 🛰}}
+\newunicodechar{✅}{\mbox{\emojifont ✅}}
+\newunicodechar{❌}{\mbox{\emojifont ❌}}
+
+% --- Tablas legibles sobre fondo oscuro ---
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{colortbl}
+\renewcommand{\arraystretch}{1.35}
+\arrayrulecolor{kachoGold}
+
+% --- Titulos en dorado ---
+\usepackage{sectsty}
+\allsectionsfont{\color{kachoGold}\sffamily\bfseries}
+\subsectionfont{\color{kachoGold}\sffamily\bfseries}
+\subsubsectionfont{\color{kachoGold}\sffamily\bfseries}
+
+% --- Cajas: las citas ("> ...") salen como panel, que es donde van los avisos ---
+\usepackage{tcolorbox}
+\tcbuselibrary{skins,breakable}
+\renewenvironment{quote}
+  {\begin{tcolorbox}[colback=kachoCard, colframe=kachoGold, coltext=kachoText,
+                     boxrule=0.7pt, arc=1.5mm, breakable, left=3mm, right=3mm]}
+  {\end{tcolorbox}}
+
+% --- Cabecera y pie ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\color{kachoGold}\sffamily Kacho System}
+\fancyhead[R]{\footnotesize\color{kachoGreen}\sffamily Nodo APRS-LoRa 433 MHz}
+\fancyfoot[C]{\footnotesize\color{kachoMuted}\sffamily\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{kachoGold}\leaders\hrule height \headrulewidth\hfill}}
+
+$if(cancel)$
+\usepackage{cancel}
+$endif$
+$if(numbersections)$
+\setcounter{secnumdepth}{$if(secnumdepth)$$secnumdepth$$else$3$endif$}
+$else$
+\setcounter{secnumdepth}{-\maxdimen}
+$endif$
+$fonts.latex()$
+$font-settings.latex()$
+$common.latex()$
+$for(header-includes)$
+$header-includes$
+$endfor$
+$after-header-includes.latex()$
+$hypersetup.latex()$
+
+$if(title)$
+\title{$title$$if(thanks)$\thanks{$thanks$}$endif$}
+$endif$
+$if(subtitle)$
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{%
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{$subtitle$}
+$endif$
+\author{$for(author)$$author$$sep$ \and $endfor$}
+\date{$date$}
+
+% ---------------------------------------------------------------------------
+% PORTADA: el logo del splash, dibujado en vector (nada de imagenes externas).
+% Es el mismo dibujo que hace el firmware al arrancar y que lleva el
+% configurador web: mastil de antena, dos arcos de radio y el punto verde.
+% ---------------------------------------------------------------------------
+$if(title)$
+\newcommand{\lachoLamarca}{%
+  \begin{tikzpicture}[scale=0.42, yscale=-1, baseline=0pt]
+    % mastil y base
+    \draw[kachoText, line width=2.2pt, line cap=round]
+      (20,-18) -- (20,-40);
+    \draw[kachoText, line width=2.2pt, line cap=round]
+      (13,-40) -- (27,-40);
+    % los dos arcos de radio
+    \draw[kachoText, line width=2.2pt, line cap=round]
+      (13.9,-9.9) arc[start angle=150, end angle=30, radius=7];
+    \draw[kachoText, line width=2.2pt, line cap=round]
+      (9.8,-5.8) arc[start angle=150, end angle=30, radius=11];
+    % el punto (la emision)
+    \fill[kachoGreen] (20,-16) circle (2.4);
+  \end{tikzpicture}%
+}
+\newcommand{\maketitlepage}{%
+  \begin{titlepage}
+    \pagecolor{kachoBg}
+    \centering
+    \vspace*{1.6cm}
+    \lachoLamarca
+    \vspace{0.2cm}
+
+    {\Huge\bfseries\sffamily\color{kachoGold} Kacho System\par}
+    \vspace{0.15cm}
+    {\large\sffamily\color{kachoMuted} Firmware APRS-LoRa para 433 MHz\par}
+
+    \vspace{0.35cm}
+    {\color{kachoGreen}\rule{0.55\textwidth}{1.1pt}\par}
+    \vspace{0.9cm}
+
+    {\LARGE\sffamily\color{kachoText}$title$\par}
+    \vspace{0.5cm}
+    {\large\itshape\color{kachoGreen}$if(subtitle)$$subtitle$$endif$\par}
+
+    \vfill
+    {\normalsize\sffamily\color{kachoGold}$for(author)$$author$$sep$ \\ $endfor$\par}
+    \vspace{0.25cm}
+    {\normalsize\color{kachoMuted}$date$\par}
+    \vspace{0.9cm}
+    {\footnotesize\color{kachoMuted}
+     Placas Faketec / ProMicro (nRF52840) y LilyGO T-Echo\\[0.1cm]
+     Radio Heltec HT-RA62 o Ebyte E22P-433M30S\\[0.1cm]
+     Software libre, licencia GPL-3.0\par}
+  \end{titlepage}
+}
+$endif$
+
+\begin{document}
+$if(has-frontmatter)$
+\frontmatter
+$endif$
+$if(title)$
+\maketitlepage
+$if(abstract)$
+\begin{abstract}
+$abstract$
+\end{abstract}
+$endif$
+$endif$
+
+$for(include-before)$
+$include-before$
+
+$endfor$
+$if(toc)$
+$if(toc-title)$
+\renewcommand*\contentsname{$toc-title$}
+$endif$
+{
+\setcounter{tocdepth}{$toc-depth$}
+\tableofcontents
+\clearpage
+}
+$endif$
+$if(lof)$
+\listoffigures
+$endif$
+$if(lot)$
+\listoftables
+$endif$
+$if(has-frontmatter)$
+\mainmatter
+$endif$
+$body$
+
+$if(has-frontmatter)$
+\backmatter
+$endif$
+$for(include-after)$
+$include-after$
+
+$endfor$
+\end{document}

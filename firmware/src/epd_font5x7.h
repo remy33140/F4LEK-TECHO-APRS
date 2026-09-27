@@ -1,0 +1,111 @@
+// epd_font5x7.h - Fuente de letras 5x7 para la pantalla de tinta electronica.
+//
+// POR QUE A MANO: la pantalla del T-Echo (GDEH0154D67, controlador SSD1681) no tiene
+// libreria en este proyecto, y meter una entera (GxEPD2 y compañia) traeria mas codigo
+// que todo nuestro firmware. Para dibujar texto en una pantalla de 200x200 no hace
+// falta tanto: con una fuente de 5x7 puntos se lee perfectamente al doble de tamano.
+//
+// Cada caracter son 5 columnas de 7 bits (el bit 0 es la fila de arriba).
+// License: GPL-3.0
+
+#pragma once
+
+#include <stdint.h>
+
+// Dibuja un caracter en el framebuffer. El "pintor" lo pone quien incluye este
+// fichero (ver epaper_techo.cpp): asi la fuente no sabe nada de pantallas.
+struct EpdFont5x7 {
+  static const uint8_t *glyph(char c) {
+    switch (c) {
+      case ' ': { static const uint8_t g[5] = {0x00, 0x00, 0x00, 0x00, 0x00}; return g; }
+      case '!': { static const uint8_t g[5] = {0x00, 0x00, 0x5F, 0x00, 0x00}; return g; }
+      case '"': { static const uint8_t g[5] = {0x00, 0x07, 0x00, 0x07, 0x00}; return g; }
+      case '#': { static const uint8_t g[5] = {0x14, 0x7F, 0x14, 0x7F, 0x14}; return g; }
+      case '%': { static const uint8_t g[5] = {0x23, 0x13, 0x08, 0x64, 0x62}; return g; }
+      case '&': { static const uint8_t g[5] = {0x36, 0x49, 0x55, 0x22, 0x50}; return g; }
+      case '\'': { static const uint8_t g[5] = {0x00, 0x05, 0x03, 0x00, 0x00}; return g; }
+      case '(': { static const uint8_t g[5] = {0x00, 0x1C, 0x22, 0x41, 0x00}; return g; }
+      case ')': { static const uint8_t g[5] = {0x00, 0x41, 0x22, 0x1C, 0x00}; return g; }
+      case '*': { static const uint8_t g[5] = {0x14, 0x08, 0x3E, 0x08, 0x14}; return g; }
+      case '+': { static const uint8_t g[5] = {0x08, 0x08, 0x3E, 0x08, 0x08}; return g; }
+      case ',': { static const uint8_t g[5] = {0x00, 0x50, 0x30, 0x00, 0x00}; return g; }
+      case '-': { static const uint8_t g[5] = {0x08, 0x08, 0x08, 0x08, 0x08}; return g; }
+      case '.': { static const uint8_t g[5] = {0x00, 0x60, 0x60, 0x00, 0x00}; return g; }
+      case '/': { static const uint8_t g[5] = {0x20, 0x10, 0x08, 0x04, 0x02}; return g; }
+      case '0': { static const uint8_t g[5] = {0x3E, 0x51, 0x49, 0x45, 0x3E}; return g; }
+      case '1': { static const uint8_t g[5] = {0x00, 0x42, 0x7F, 0x40, 0x00}; return g; }
+      case '2': { static const uint8_t g[5] = {0x42, 0x61, 0x51, 0x49, 0x46}; return g; }
+      case '3': { static const uint8_t g[5] = {0x21, 0x41, 0x45, 0x4B, 0x31}; return g; }
+      case '4': { static const uint8_t g[5] = {0x18, 0x14, 0x12, 0x7F, 0x10}; return g; }
+      case '5': { static const uint8_t g[5] = {0x27, 0x45, 0x45, 0x45, 0x39}; return g; }
+      case '6': { static const uint8_t g[5] = {0x3C, 0x4A, 0x49, 0x49, 0x30}; return g; }
+      case '7': { static const uint8_t g[5] = {0x01, 0x71, 0x09, 0x05, 0x03}; return g; }
+      case '8': { static const uint8_t g[5] = {0x36, 0x49, 0x49, 0x49, 0x36}; return g; }
+      case '9': { static const uint8_t g[5] = {0x06, 0x49, 0x49, 0x29, 0x1E}; return g; }
+      case ':': { static const uint8_t g[5] = {0x00, 0x36, 0x36, 0x00, 0x00}; return g; }
+      case ';': { static const uint8_t g[5] = {0x00, 0x56, 0x36, 0x00, 0x00}; return g; }
+      case '<': { static const uint8_t g[5] = {0x08, 0x14, 0x22, 0x41, 0x00}; return g; }
+      case '=': { static const uint8_t g[5] = {0x14, 0x14, 0x14, 0x14, 0x14}; return g; }
+      case '>': { static const uint8_t g[5] = {0x00, 0x41, 0x22, 0x14, 0x08}; return g; }
+      case '?': { static const uint8_t g[5] = {0x02, 0x01, 0x51, 0x09, 0x06}; return g; }
+      case '@': { static const uint8_t g[5] = {0x32, 0x49, 0x79, 0x41, 0x3E}; return g; }
+      case 'A': { static const uint8_t g[5] = {0x7E, 0x11, 0x11, 0x11, 0x7E}; return g; }
+      case 'B': { static const uint8_t g[5] = {0x7F, 0x49, 0x49, 0x49, 0x36}; return g; }
+      case 'C': { static const uint8_t g[5] = {0x3E, 0x41, 0x41, 0x41, 0x22}; return g; }
+      case 'D': { static const uint8_t g[5] = {0x7F, 0x41, 0x41, 0x22, 0x1C}; return g; }
+      case 'E': { static const uint8_t g[5] = {0x7F, 0x49, 0x49, 0x49, 0x41}; return g; }
+      case 'F': { static const uint8_t g[5] = {0x7F, 0x09, 0x09, 0x01, 0x01}; return g; }
+      case 'G': { static const uint8_t g[5] = {0x3E, 0x41, 0x41, 0x51, 0x32}; return g; }
+      case 'H': { static const uint8_t g[5] = {0x7F, 0x08, 0x08, 0x08, 0x7F}; return g; }
+      case 'I': { static const uint8_t g[5] = {0x00, 0x41, 0x7F, 0x41, 0x00}; return g; }
+      case 'J': { static const uint8_t g[5] = {0x20, 0x40, 0x41, 0x3F, 0x01}; return g; }
+      case 'K': { static const uint8_t g[5] = {0x7F, 0x08, 0x14, 0x22, 0x41}; return g; }
+      case 'L': { static const uint8_t g[5] = {0x7F, 0x40, 0x40, 0x40, 0x40}; return g; }
+      case 'M': { static const uint8_t g[5] = {0x7F, 0x02, 0x04, 0x02, 0x7F}; return g; }
+      case 'N': { static const uint8_t g[5] = {0x7F, 0x04, 0x08, 0x10, 0x7F}; return g; }
+      case 'O': { static const uint8_t g[5] = {0x3E, 0x41, 0x41, 0x41, 0x3E}; return g; }
+      case 'P': { static const uint8_t g[5] = {0x7F, 0x09, 0x09, 0x09, 0x06}; return g; }
+      case 'Q': { static const uint8_t g[5] = {0x3E, 0x41, 0x51, 0x21, 0x5E}; return g; }
+      case 'R': { static const uint8_t g[5] = {0x7F, 0x09, 0x19, 0x29, 0x46}; return g; }
+      case 'S': { static const uint8_t g[5] = {0x46, 0x49, 0x49, 0x49, 0x31}; return g; }
+      case 'T': { static const uint8_t g[5] = {0x01, 0x01, 0x7F, 0x01, 0x01}; return g; }
+      case 'U': { static const uint8_t g[5] = {0x3F, 0x40, 0x40, 0x40, 0x3F}; return g; }
+      case 'V': { static const uint8_t g[5] = {0x1F, 0x20, 0x40, 0x20, 0x1F}; return g; }
+      case 'W': { static const uint8_t g[5] = {0x7F, 0x20, 0x18, 0x20, 0x7F}; return g; }
+      case 'X': { static const uint8_t g[5] = {0x63, 0x14, 0x08, 0x14, 0x63}; return g; }
+      case 'Y': { static const uint8_t g[5] = {0x03, 0x04, 0x78, 0x04, 0x03}; return g; }
+      case 'Z': { static const uint8_t g[5] = {0x61, 0x51, 0x49, 0x45, 0x43}; return g; }
+      case '[': { static const uint8_t g[5] = {0x00, 0x7F, 0x41, 0x41, 0x00}; return g; }
+      case '\\': { static const uint8_t g[5] = {0x02, 0x04, 0x08, 0x10, 0x20}; return g; }
+      case ']': { static const uint8_t g[5] = {0x00, 0x41, 0x41, 0x7F, 0x00}; return g; }
+      case '_': { static const uint8_t g[5] = {0x40, 0x40, 0x40, 0x40, 0x40}; return g; }
+      case 'a': { static const uint8_t g[5] = {0x20, 0x54, 0x54, 0x54, 0x78}; return g; }
+      case 'b': { static const uint8_t g[5] = {0x7F, 0x48, 0x44, 0x44, 0x38}; return g; }
+      case 'c': { static const uint8_t g[5] = {0x38, 0x44, 0x44, 0x44, 0x20}; return g; }
+      case 'd': { static const uint8_t g[5] = {0x38, 0x44, 0x44, 0x48, 0x7F}; return g; }
+      case 'e': { static const uint8_t g[5] = {0x38, 0x54, 0x54, 0x54, 0x18}; return g; }
+      case 'f': { static const uint8_t g[5] = {0x08, 0x7E, 0x09, 0x01, 0x02}; return g; }
+      case 'g': { static const uint8_t g[5] = {0x08, 0x14, 0x54, 0x54, 0x3C}; return g; }
+      case 'h': { static const uint8_t g[5] = {0x7F, 0x08, 0x04, 0x04, 0x78}; return g; }
+      case 'i': { static const uint8_t g[5] = {0x00, 0x44, 0x7D, 0x40, 0x00}; return g; }
+      case 'j': { static const uint8_t g[5] = {0x20, 0x40, 0x44, 0x3D, 0x00}; return g; }
+      case 'k': { static const uint8_t g[5] = {0x00, 0x7F, 0x10, 0x28, 0x44}; return g; }
+      case 'l': { static const uint8_t g[5] = {0x00, 0x41, 0x7F, 0x40, 0x00}; return g; }
+      case 'm': { static const uint8_t g[5] = {0x7C, 0x04, 0x18, 0x04, 0x78}; return g; }
+      case 'n': { static const uint8_t g[5] = {0x7C, 0x08, 0x04, 0x04, 0x78}; return g; }
+      case 'o': { static const uint8_t g[5] = {0x38, 0x44, 0x44, 0x44, 0x38}; return g; }
+      case 'p': { static const uint8_t g[5] = {0x7C, 0x14, 0x14, 0x14, 0x08}; return g; }
+      case 'q': { static const uint8_t g[5] = {0x08, 0x14, 0x14, 0x18, 0x7C}; return g; }
+      case 'r': { static const uint8_t g[5] = {0x7C, 0x08, 0x04, 0x04, 0x08}; return g; }
+      case 's': { static const uint8_t g[5] = {0x48, 0x54, 0x54, 0x54, 0x20}; return g; }
+      case 't': { static const uint8_t g[5] = {0x04, 0x3F, 0x44, 0x40, 0x20}; return g; }
+      case 'u': { static const uint8_t g[5] = {0x3C, 0x40, 0x40, 0x20, 0x7C}; return g; }
+      case 'v': { static const uint8_t g[5] = {0x1C, 0x20, 0x40, 0x20, 0x1C}; return g; }
+      case 'w': { static const uint8_t g[5] = {0x7C, 0x20, 0x18, 0x20, 0x7C}; return g; }
+      case 'x': { static const uint8_t g[5] = {0x44, 0x28, 0x10, 0x28, 0x44}; return g; }
+      case 'y': { static const uint8_t g[5] = {0x0C, 0x50, 0x50, 0x50, 0x3C}; return g; }
+      case 'z': { static const uint8_t g[5] = {0x44, 0x64, 0x54, 0x4C, 0x44}; return g; }
+      default:  { static const uint8_t g[5] = {0x00, 0x00, 0x00, 0x00, 0x00}; return g; }
+    }
+  }
+};

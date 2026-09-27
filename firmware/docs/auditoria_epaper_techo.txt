@@ -1,0 +1,195 @@
+AUDITORÍA OBJETIVA — driver de tinta electrónica SSD1681 200x200 (epaper_techo.cpp + main.cpp)
+Firmware: LoRa_APRS_iGate (nRF52840, LilyGO T-Echo / T-Echo Plus), rotación 1 (de pie).
+Método: lectura del código. Cada afirmación marcada [VERIFICADO]/[DEDUCIDO]/[NO CONSTA].
+Fuente: _trabajo_ea2oy/src/epaper_techo.cpp (2481 líneas) y _trabajo_ea2oy/src/main.cpp.
+
+================================================================================
+A. PROBLEMAS GRAVES
+================================================================================
+
+A1. La pastilla RX/TX y el aviso "TX" se QUEDAN PEGADOS hasta 60 s. [VERIFICADO]
+    Funciones: pintaPillRX() (línea 1969) y pintaAvisoTX() (línea 2007).
+    Motivo concreto: ambas deciden si hay que pintar "TX" (relleno negro) usando
+    radioLastTxMs() < 3000 ms, y el aviso con el mismo umbral. Ese dato (radioLastTxMs
+    y el flag "acabo de transmitir") NO entra en huellaContenido(); la huella solo
+    lleva el CONTADOR gTx (que cambia UNA vez por emisión, al inicio del TX).
+    Secuencia del fallo:
+      1) Emites: gTx++ -> la huella cambia -> displayRefresh repinta. En ese instante
+         radioLastTxMs()<3000 -> se dibuja la pastilla rellena "TX" y la banda de aviso.
+      2) Durante los 3 s siguientes NO hay otra emisión -> gTx se queda quieto, la
+         huella NO cambia -> displayRefresh NO repinta.
+      3) A los 3 s la condición radioLastTxMs()>3000 querría volver a "RX" y borrar el
+         aviso, pero como la huella no cambió, nadie llama a dibujaEscena/epdFlush.
+      4) El panel es bistable: la pastilla negra "TX" y la banda siguen pintadas hasta
+         que algo más cambie (una RX, un botón, el carrusel) o el refresco de los 60 s
+         (kRepintadoMaxMs). En silencio, el "TX" queda congelado hasta 60 s.
+    Matiz: en tráfico activo una RX enseguida vuelve a repintar y lo despega; el
+    problema se ve solo en silencio. Consecuencia: muestra un estado falso (transmite-
+    do) durante mucho rato y, además, gasta un sitio que el operador mira de reojo.
+    Resulta un "falso" de diseño: un dato que se DIBUJA (el relleno TX) no está en la
+    huella, justo el lado "no repintar cuando SÍ cambia" que la huella intenta evitar.
+    (El mismo patrón aplica a "MUTE" (gCfg->txDisabled) y "--" (!radioReady()): si el
+    operador cambia txDisabled en caliente, la pastilla no se actualizaría sola.)
+
+================================================================================
+B. PROBLEMAS MENORES / RIESGOS DE DISEÑO
+================================================================================
+
+B1. Colisión de la pastilla "MUTE" con el óvalo del título. [VERIFICADO]
+    Funciones: pintaOvalo() (1953) y pintaPillRX() (1969).
+    El óvalo se extiende x=8..min(8+textWidth+16, 150). La pastilla RX se dibuja
+    x0 = (200-8) - textWidth - 16.
+      - "RX"/"TX"/"--" (2 chars, textWidth≈22): x0 = 192-22-16 = 154. El óvalo acaba
+        como mucho en x=150 -> NO colisiona.
+      - "MUTE" (4 chars, textWidth≈46): x0 = 192-46-16 = 130. Si el título tiene
+        9 o más caracteres (Rastreador, Repetidor, Sensores no, Ultimos RX/TX 10,
+        Digi+Tracker 12), el óvalo llega a x>=132 (capa a 150) -> la pastilla MUTE se
+        pinta ENCIMA del extremo derecho del título y tapa sus últimas letras.
+    Como la pastilla se dibuja después (pintaCabecera: pintaOvalo luego pintaPillRX),
+    gana la pastilla. Solo ocurre con txDisabled=1 (poco frecuente), pero es una
+    colisión real en coordenadas.
+
+B2. La huella omite varios datos que SÍ se dibujan -> escenas que se quedan con datos
+    viejos y solo se actualizan por el refresco de 60 s (kRepintadoMaxMs). [VERIFICADO]
+    huellaContenido() (2333) incluye: escena, modo, aviso+gLinea1/gLinea2, fix, lat,
+    lon, vel, sats, temp, hum, pres, batería(mv), gRx/gTx/gDg.
+    Lo que dibuja pinta... y NO entra en la huella:
+      - pintaEstado (2096): "RSSI/SNR" de radioLastRssi()/radioLastSnr().
+      - pintaRadio (2106): frequencyHz, spreadingFactor, signalBandwidthKhz (config).
+      - pintaSensores (2127): sensorsChipTemp() y chipTempOffsetC.
+      - pintaSistema (2151): "Encendido Nmin" = millis()/60000.
+      - pintaEstaciones (2160): la lista completa (stations, distancias/edades).
+      - pintaGPS (2221): alt, courseDeg, hdop (solo están lat/lon/vel/sats), y en la
+        rama sin fix, satsInView (excluida a propósito, ver B3).
+      - callSinSSID() (el título de Estado).
+    Consecuencia: dentro de estas escenas, si lo que cambia es uno de esos valores y
+    nada de lo que SÍ está en la huella, la pantalla no se refresca y muestra la
+    versión vieja hasta la pasada de refresco de 60 s. Para pintaSistema y
+    pintaEstaciones (edades que cambian cada segundo) es incluso lo deseable (no
+    repintar cada segundo), pero para RSSI/SNR, rumbo/HDOP o la distancia a las
+    estaciones (que SÍ cambian de forma relevante) es un false-negative real que se
+    deja a la red de seguridad del tiempo.
+
+B3. satsInView dentro de la huella = excluido a propósito: documentado pero genera
+    ese "sat a la vista" congelado. [VERIFICADO]
+    Comentario en 2358-2363: el número baila y hacía repintar sin parar; por eso se
+    dejó fuera. Se DIBUJA en pintaEstado (2078, escala 1) y en pintaGPS (2240,
+    escala 2) en la rama sin fix. Mientras no haya fix, la línea "N sat a la vista"
+    queda pegada a un valor viejo hasta que ocurra otra cosa. Es un trade-off asumido
+    (el operador lo acepta), coherente con pintaGPS/pintaEstado.
+
+B4. Doble repintado tras cada aviso/cambio de escena manual. [DEDUCIDO]
+    Funciones: displayNextScene() (1827), displayPopup() (1838), displayNoteRx/Digi/Tx
+    (1858/1866/1874). Estos caminos hacen gDirty=true y epdFlush() directamente, pero
+    NO actualizan gHuellaPintada. En la siguiente pasada de displayRefresh() la huella
+    recién calculada (con el aviso/la escena nueva) difiere de gHuellaPintada (la
+    vieja) -> vuelve a repintar. Toda acción de usuario provoca DOS refrescos (uno en
+    el camino directo y otro en la siguiente vuelta). No es infinito, pero duplica
+    parpadeo/tinta y va contra el objetivo "no repintar sin motivo". (Solución
+    natural: que esos caminos actualicen gHuellaPintada / pasen por displayRefresh.)
+
+B5. La línea "Modo + RX/TX/DG" de pintaEstado puede salirse por la derecha con
+    contadores grandes. [DEDUCIDO]
+    pintaEstado (2065): texto a escala 1 (6 px/letra) en drawTextCenter -> si supera
+    200 px, x se fuerza a 0 y px() recorta lo que pasa de x=199 (clipping, no wrap).
+    Con "Digi+Tracker" (12) + contadores de 6 dígitos, la línea ocupa ~48 caracteres
+    = ~288 px -> se corta. Con contadores pequeños cabe (~162 px). Riesgo real solo
+    con iGate que acumulan miles de tramas, pero es un corte posible.
+    (Mismo clipping a escala 1 podría darse en otras líneas centradas largas.)
+
+B6. La batería del log y la del footer: consistentes (bien) pero con redondeo a mV;
+    el % se deriva del mismo voltaje, así que si la batería no cruza el umbral de
+    10 mV no hay repintado y el % queda ligeramente obsoleto. [DEDUCIDO] Riesgo bajo.
+
+B7. Inconsistencia documentación de polaridad del botón capacitivo. [VERIFICADO +
+    NO CONSTA]
+    main.cpp (línea 65) lee el capacitivo como ACTIVO EN BAJO: cap = (digitalRead ==
+    LOW), con INPUT_PULLUP; comentario en 60 "activo en BAJO... baja al tocarla".
+    Pero pins_techo.h (línea 98) dice: "boton tactil capacitivo (activo a nivel alto)".
+    Los dos ficheros se contradicen. La LÓGICA del código es coherente con la hipótesis
+    "activo en bajo" (que es la que tú me das), así que si el hardware es realmente
+    activo-bajo, el código funciona. Pero como el propio header la declara "activo
+    alto", existe riesgo de que la detección esté invertida en hardware real: con
+    pull-up interno y un panel que hiciera tierra al tocarlo, "== LOW" sería correcto;
+    si el pad diera ALTO al tocarlo, estaría invertido. La polaridad real del T-Echo
+    Plus [NO CONSTA] en este código; recomiendo confirmarla en la placa antes de dar
+    por buena la detección de flanco.
+
+B8. La polaridad del físico P1.10 (PIN_BUTTON=42) y su interacción con la luz:
+    el primer `displayBacklightKick()` del handleButton() se llama para cualquier
+    evento (incluida la rama del capacitivo que IGNORA la luz) -> un toque capacitivo
+    realmente despertará/avanzará y además el kick de luz es correcto. Solo apunto que
+    el bucle de la luz funciona bien (ver C5); no hay bug detectado aquí. [VERIFICADO]
+
+================================================================================
+C. LO QUE ESTÁ BIEN (no tocar)
+================================================================================
+
+C1. Lógica de refresco (completo/parcial) correcta. [VERIFICADO]
+    epdRefresca() manda los dos planos en el orden del de referencia: 0x26 = plano
+    anterior (o el mismo si nullptr) y 0x24 = plano actual; completo manda la misma
+    imagen en los dos (barrido entero), parcial manda viejo/nuevo (solo mueve lo que
+    cambia). epdFullRefresh/PartialRefresh eligen bien según gPrevValido. Esperas de
+    BUSY CON TOPE (300 ms previa, 1500/4000 ms tras pintar) -> NO hay camino sin
+    salida ni cuelgue: todas las esperas son acotadas y el delay() final garantiza que
+    el panel termina antes de dormirlo. epdTocaCompleto() fuerza completo por petición,
+    sin plano anterior, tope de parciales (720) y tope de tiempo (60 min).
+
+C2. Copia gBuf->gBufPrev GATED por éxito de la transferencia. [VERIFICADO]
+    En epdRefresca (707-712): memcpy solo si fallosAhora==0; si hubo transferencias
+    abortadas, se pone gPrevValido=false, lo que fuerza el próximo a completo y evita
+    arrastrar un plano corrupto a todos los parciales siguientes. Converge bien.
+
+C3. La huella FNV-1a es estable y está bien construida (los ingredientes están
+    redondeados IGUAL que lo que se dibuja). [VERIFICADO]
+    huellaAnade() aplica FNV-1a de 64 bits; la posición (5 decimales), velocidad
+    (0 dec), batería (a 0,01 V vía bateriaMv()) se redondean de la MISMA forma que en
+    el dibujo, evitando repintados espurios. Excluir satsInView y el "reloj de aviso"
+    es lo que evita el repintado infinito. kRepintadoMaxMs (60 s) es la red de
+    seguridad para lo que se escape. Diseño sólido en su núcleo.
+
+C4. La batería NO repinta sin parar. [VERIFICADO]
+    bateriaMv() (2290) usa sensorsBatteryVolt(gSens) (lectura cacheada y filtrada del
+    resto del firmware, no el ADC ruidoso), y se redondea a 0,01 V; este es UNO de los
+    datos de la huella. Está documentado que el ADC en esta unidad lee ruido, por eso
+    no se usa bateriaMv ruidosa; la mitigación está bien aplicada.
+
+C5. Luz de retroiluminación fiable. [VERIFICADO]
+    displayBacklightKick() enciende y pone gLuzHasta=millis+5000; displayBacklightTick()
+    comprueba en cada vuelta ((int32_t)(nowMs-gLuzHasta)>=0) y apaga el pin. La resta
+    con signo está correcta para el wrap de millis(). El kick del botón llama en todas
+    las ramas del evento, así que el segundo toque siempre vuelve a encenderla.
+
+C6. El splash y su barra crecen bien; el refresco del splash es sólido. [VERIFICADO]
+    dibujaSplash() pinta el marco y rellena el cuerpo con (bw-2)*pct/100 (pct 0,34,67,
+    100); crece de izquierda a derecha. En displayArrancaPantalla() el primer epdFlush
+    es completo (no hay plano anterior) y los siguientes parciales (buen canditato
+    para poco fantasma porque solo cambia la barra). Tras el splash se fuerza a pintar
+    Estado con gUltimoPintado=0 y gDirty=true -> pinta de inmediato en la primera
+    vuelta.
+
+C7. Ninguna escena choca con el pie ni con la cabecera. [DEDUCIDO]
+    El pie (y 186..200): los rectangulitos del carrusel ocupan x=12..104 y la batería
+    x=134..177 -> no se pisan entre sí, y el texto "%" va encima (y 172..186) del
+    cuerpo, sin tocar los puntos. Todas las escenas terminan su contenido por debajo
+    de y~160 (Estado ~158 en el peor caso con fix), así que el pie no pisa texto.
+    El separador a y=25 y el contenido a y>=30 no se solapan.
+
+C8. No hay repintado infinito por un dato de la huella. [VERIFICADO]
+    No hay reloj, ni marca de tiempo, ni satsInView, ni contador de "hace Ns" dentro
+    de la huella. Los contadores gRx/gTx/gDg cambian con tráfico real (contenido que
+    sí cambia, repintado justificado), no con un valor que oscila solo. La huella no
+    tiene un ingrediente que cambie cada vuelta del bucle.
+
+================================================================================
+D. RECOMENDACIÓN PRIORIZADA
+================================================================================
+1. A1 es el único bug de comportamiento real que conviene corregir: añadir a la huella
+   (o forzar repintado con) el flag "recientemente transmitido" (radioLastTxMs()
+   < 3000) y, de paso, txDisabled/radioReady para la pastilla. Eso despega la pastilla
+   y el aviso a los 3 s y elimina el "TX" congelado.
+2. B4 no requiere cambios de controlador, solo actualizar gHuellaPintada en los caminos
+   de aviso/botón para no doblar el repintado.
+3. B1 (MUTE vs óvalo) y B5 (clipping) son condicionales y de menor impacto; revisarlos
+   si se amplía el texto o se esperan contadores grandes.
+4. B7 (polaridad del capacitivo): confirmar en hardware antes de descartar.

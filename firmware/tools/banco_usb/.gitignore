@@ -1,0 +1,5 @@
+# Artefactos del banco de pruebas: se regeneran con .\ejecuta_banco_usb.ps1
+*.exe
+*.pdb
+*.log
+.zig-cache/
