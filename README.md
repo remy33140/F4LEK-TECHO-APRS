@@ -9,12 +9,11 @@ screen whether the spot went through.
 This is a fork of **[EA2OY APRS System](https://github.com/EA2OY/EA2OY-APRS-SYSTEM)**
 ("Kacho System") by EA2OY. It brings the whole base: LoRa APRS digipeater and tracker,
 smart beaconing profiles, telemetry, APRS messaging, flash trip log, the e-paper driver
-and the web configurator. All credit for that goes to EA2OY. Licence: GPL-3.0, same as
+and the web configurator. All credit for that goes to EA2OY. Check his user manual for all other functions. Licence: GPL-3.0, same as
 upstream.
 
 ## What this fork adds
 
-- **T-Echo only.** Faketec / ProMicro support and the OLED interface have been removed.
 - **SOTA menu:** plan the activation once (summit, frequency, mode, callsign), then spot
   it in a couple of clicks with a comment (QRV, QSY, QRT, TEST).
 - **SOTA screen** in the carousel: the plan, the APRS2SOTA status of the last spot
@@ -23,7 +22,7 @@ upstream.
 - **Clean home screen:** position, speed, altitude, satellites, received messages.
 - **Messages screen** keeping the received APRS messages.
 - **English menus and screens.**
-- **Bootloader 0.11.0 + SoftDevice S140 7.3.0** on the T-Echo (see below).
+
 
 ## Using it
 
@@ -38,15 +37,15 @@ upstream.
 
 ### SOTA
 
-Main menu: `Exit · Sleep · SOTA · Messages · …`
+Main menu: `SOTA
 
-1. **SOTA → Plan activation** (at home or at the foot of the summit):
+1. **SOTA → Plan activation**:
    association → region → 3-digit number → confirm summit → frequency (6 digits,
    `145.500`) → mode → callsign prefix (`(none)` in your own country).
    `SAVE PLAN?` → short press. The plan is stored in flash and shown on the SOTA screen.
    The first row, `Re F/PE-103`, reuses your last summit and prefix and jumps straight to
    the frequency. Your recent associations are listed first, marked `*`.
-2. **SOTA → SOTA spot** (on the summit): pick a comment → `SEND SPOT?` → short press.
+2. **SOTA → SOTA spot**: pick a comment → `SEND SPOT?` → short press.
    The spot is sent as an APRS message to `APRS2SOTA`, e.g.
    `F/PE-103 145.500MHz SSB F4LEK/P QRV`.
 3. **Check the SOTA screen:**
@@ -59,7 +58,7 @@ Main menu: `Exit · Sleep · SOTA · Messages · …`
 | Error | the gateway refused it (e.g. unknown mode) |
 | Not sent | radio error, or no acknowledgement after all retries |
 
-To QSY, run *Plan activation* again (the `Re …` row keeps the summit), then *SOTA spot*.
+
 
 ### Configuration
 
@@ -104,8 +103,7 @@ pio run -e techo_s140v7          # T-Echo
 pio run -e techo_plus_s140v7     # T-Echo Plus
 ```
 
-The UF2 lands in `firmware/.pio/build/<env>/firmware.uf2`. The `techo`, `techo_plus` and
-`techo_plus_s140v6` environments are for the factory S140 6.1.1 bootloader only.
+The UF2 lands in `firmware/.pio/build/<env>/firmware.uf2`. 
 
 
 ## Licence
