@@ -62,17 +62,8 @@ The T-Echo has two controls: the **touch key** (capacitive pad) and the **physic
 
 ---
 
-## 🗻 SOTA step by step
+## 🗻 SOTA spot function step by step
 
-SOTA works in **two stages**, both in the `SOTA` section of the menu:
-
-| | When | Menu entry | What you do |
-|:-:|---|---|---|
-| **1** | at home, the day before | `Plan activation` | pick summit, frequency, mode, callsign prefix → saved in flash |
-| **2** | on the summit | `SOTA spot` | pick a comment → the spot goes out to APRS2SOTA |
-
-The heavy part (scrolling through lists, entering digits) happens once, at home.
-On the summit it takes **three presses**.
 
 ### 0 · Before your first activation
 
@@ -86,9 +77,9 @@ If your callsign already has a `/`, it is used as it is.
  On any screen                Main menu                    SOTA section
  ─────────────                ─────────                    ────────────
                               ▸ Exit                       ▸ < Back
-   LONG press  ────────▶        Sleep          touch ×2      Exit
-                                SOTA          ─────────▶     Plan activation   ◀ touch ×2
-                                Messages      then SHORT     SOTA spot         ◀ touch ×3
+   LONG press  ────────▶        Sleep                        Exit
+                                SOTA          ─────────▶     Plan activation  
+                                Messages                     SOTA spot         
                                 …
 ```
 
@@ -114,24 +105,10 @@ flowchart LR
     A -. "Re F/PE-103" .-> F
 ```
 
-| # | Screen title | What to pick | Example |
-|:-:|---|---|---|
-| 1 | `Association` | the SOTA association. See [the association list](#the-association-list) below. | `F` |
-| 2 | `Region` | the region code inside that association | `PE` |
-| 3 | `Digit 1/3`, `2/3`, `3/3` | the summit number, one digit per screen (`0`–`9`) | `1`, `0`, `3` |
-| 4 | `Confirm summit` | the reference is shown large. **Short** = OK, **long** = fix the last digit | `F/PE-103` |
-| 5 | `Freq. hundreds` … `Freq. thousandths` | the frequency in MHz, 6 digits in the form `000.000`, one digit per screen | `1` `4` `5` . `5` `0` `0` |
-| 6 | `Mode` | `AM` · `CW` · `DATA` · `DV` · `FM` · `SSB` · `OTHER` (the modes APRS2SOTA accepts) | `SSB` |
-| 7 | `Call prefix` | `(none)` when you activate in your own country, otherwise the country prefix | `(none)` or `EA2` |
-| 8 | `SAVE PLAN?` | shows the full spot text. **Short** = save, **long** = go back and edit | |
 
-After saving you are back in the SOTA menu, and the plan appears on the **SOTA screen** of the
+After saving the plan appears on the **SOTA screen** of the
 carousel. It stays in flash across reboots until you plan another activation.
 
-> [!TIP]
-> **Entering a frequency:** every digit starts at `0`, and the touch key only counts **up**
-> (after `9` it wraps to `0`). For `145.500`: touch ×1 → short, touch ×4 → short, touch ×5 → short,
-> touch ×5 → short, short, short.
 
 #### The association list
 
@@ -155,17 +132,8 @@ The association list is long, so the firmware puts shortcuts **at the top**:
 
 ### 3 · Spot from the summit
 
-1. **Long press** → **touch ×2** → **short** (`SOTA`) → **touch ×3** → **short** (`SOTA spot`).
-2. `Comment`: pick one and **short press**.
-
-   | Comment | Meaning |
-   |---|---|
-   | `(none)` | no comment |
-   | `QRV` | I'm on the air, call me |
-   | `QSY` | I'm changing frequency / mode |
-   | `QRT` | I'm going off the air |
-   | `TEST` | test spot |
-
+1. Open `SOTA spot`
+2. `Comment`: pick one 
 3. `SEND SPOT?` shows the exact message. **Short press** sends it, **long press** goes back.
 
 The spot is sent as an APRS message to **`APRS2SOTA`**:
@@ -174,13 +142,10 @@ The spot is sent as an APRS message to **`APRS2SOTA`**:
 F/PE-103 145.500MHz SSB F4LEK/P QRV
 ```
 
-With a call prefix, the callsign becomes `EA2/F4LEK/P`.
-The wizard closes and the bottom line shows `SOTA: sent` (or `SOTA: TX failed`).
 
 > [!NOTE]
 > If you open `SOTA spot` without a plan, the device shows `SOTA: no plan`. Plan first.
-> To QSY to another band, use `Plan activation` → **`Re …`** (frequency + mode only), then
-> `SOTA spot` → `QSY`.
+
 
 ### 4 · Check the SOTA screen
 
@@ -195,7 +160,7 @@ Short press or touch through the carousel until the **SOTA** screen:
  │        APRS status:          │
  │          Spotted             │   ◀ answer from APRS2SOTA
  │ ──────────────────────────── │
- │         10:42 UTC            │   for your log
+ │         10:42 UTC            │   UTC time for your log
  └──────────────────────────────┘
 ```
 
@@ -203,7 +168,7 @@ Short press or touch through the carousel until the **SOTA** screen:
 |---|---|---|
 | `--` | no spot sent since power-on | |
 | ⏳ `Sending` | sent, waiting for the gateway's answer | wait. The APRS message is retried automatically. |
-| ✅ **`Spotted`** | the spot is published on SOTAwatch | you're on the air, work the pile-up |
+| ✅ **`Spotted`** | the spot is published on SOTAwatch | you're on the air |
 | ♻️ `Dupe` | that spot already exists | nothing to do |
 | ❌ `Error` | the gateway refused it (e.g. unknown mode or summit) | check the plan and send again |
 | 📵 `Not sent` | radio error, or no acknowledgement after all retries | no iGate in range: move, or try again later |
@@ -229,7 +194,7 @@ The T-Echo ships with bootloader 0.6.1 + S140 **6.1.1**. This firmware targets
 need is in [`bootloader/`](bootloader/). Source and full guide:
 [ViezeVingertjes/lilygo-techo-bootloader](https://github.com/ViezeVingertjes/lilygo-techo-bootloader).
 
-1. **Check.** Double-press reset → the `TECHOBOOT` drive appears. `INFO_UF2.TXT` should
+1. **Check.** Connect the device to a computer using UCB-C cable. Double-press reset → the `TECHOBOOT` drive appears. `INFO_UF2.TXT` should
    show `s140 6.1.1` and `Board-ID: nRF52840-TEcho-v1`.
 2. **Flash bootloader + SoftDevice over serial DFU.** Only the `.zip` can change the
    SoftDevice; the `.uf2` files cannot.
@@ -241,9 +206,7 @@ need is in [`bootloader/`](bootloader/). Source and full guide:
    ```
    On Windows, use `-p COMx`. After this the T-Echo has no application and stays in the
    bootloader. That is expected.
-3. **Optional test.** Copy `bootloader/techo_sd730_sample.uf2` onto `TECHOBOOT`. A blue
-   LED blinking at 1 Hz means S140 7.3.0 is running. `INFO_UF2.TXT` now shows
-   `s140 7.3.0` and `Bootloader: 0.11.0`.
+
 
 > [!WARNING]
 > After the upgrade, only flash firmware built for S140 7.x (`0x27000`). An old 6.1.1 build
