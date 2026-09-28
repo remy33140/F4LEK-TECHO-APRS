@@ -12,6 +12,8 @@ couple of clicks and see on the e-paper screen that the spot went through.
 ![SoftDevice](https://img.shields.io/badge/S140-7.3.0-orange)
 ![Licence](https://img.shields.io/badge/licence-GPL--3.0-lightgrey)
 
+### [🌐 Open the web configurator](https://remy33140.github.io/F4LEK-TECHO-APRS/web/)
+
 [What it adds](#-what-this-fork-adds) •
 [Buttons](#-buttons) •
 [SOTA guide](#-sota-step-by-step) •
@@ -180,8 +182,12 @@ and resets to `--` after a reboot.
 
 ## ⚙️ Configuration
 
-Open the web configurator (`web/index.html`) in **Chrome or Edge**, connect over USB and set at
-least your **callsign**. The most common settings are also in the on-device menu.
+### 👉 [Open the web configurator](https://remy33140.github.io/F4LEK-TECHO-APRS/web/)
+
+Nothing to install: open the link in **Chrome or Edge** on a computer (WebSerial does not work
+in Firefox, Safari or on phones), plug the T-Echo in over USB, press **Connect** and set at least
+your **callsign**. **Fill in recommended values** loads the F4LEK settings (your callsign and
+coordinates are left untouched). The most common settings are also in the on-device menu.
 
 ---
 

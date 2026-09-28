@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -71,6 +71,8 @@ section.panel.active{display:block}
 .field.bool label{display:flex;align-items:center;gap:6px}
 .row label.chk{display:flex;align-items:center;gap:5px;color:var(--muted);cursor:pointer;font-size:12px}
 .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.modtag{display:inline-block;padding:3px 10px;border-radius:6px;border:1px solid var(--gold);
+  background:#3A2F14;color:var(--gold);font-weight:700;font-size:13px;letter-spacing:.5px;white-space:nowrap}
 .badge{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--line);font-size:11.5px;color:var(--muted)}
 .badge.ok{color:var(--green);border-color:var(--green)}
 .badge.bad{color:var(--red);border-color:var(--red)}
@@ -247,6 +249,7 @@ dialog .row{justify-content:flex-end}
         <div class="b2" id="brandSub">APRS-LoRa 433 MHz</div>
       </div>
     </div>
+  <span class="modtag" title="F4LEK version of the Kacho System configurator">F4LEK Mod</span>
   <span id="connBadge" class="badge bad" data-i18n="disconnected">Desconectado</span>
   <div class="spacer"></div>
   <button id="btnConnect" class="primary" data-i18n="connect">Conectar</button>
@@ -893,7 +896,7 @@ const I18N = {
     obj_sent:"Object sent: ", obj_killed:"Object deleted: ", obj_need:"Fill in the name and the coordinates.",
   }
 };
-let lang = localStorage.getItem("ea2oy_lang") || "es";
+let lang = localStorage.getItem("ea2oy_lang") || "en";
 const t = (k)=> (I18N[lang] && I18N[lang][k]) || k;
 const L = (o)=> o ? (o[lang] || o.es || "") : "";
 
@@ -2529,51 +2532,38 @@ function updateSymbolMini(){
 }
 
 /* ================= valores recomendados =================
-   Ajustes habituales de la red APRS-LoRa, para dejar un nodo listo en un
-   minuto. NO toca el indicativo ni las coordenadas: eso es de cada uno. */
+   Valores de F4LEK (web/f4lek_aprs_config.json). NO toca el indicativo ni las
+   coordenadas: eso es de cada uno. */
 function recommendedValues(){
-  const mod = (lastStatus && lastStatus.radio && lastStatus.radio.module) || "";
-  const e22p = /E22P/i.test(mod);
   return {
-    mode: 2, symbol: "#", comment: "", status: "", msgText: "",
-    // Matrícula del firmware y ruta de respaldo: si faltan, el nodo usa APLRG1
-    // (aprs.fi lo atribuiría al firmware de otra persona) y su ruta guardada.
-    tocall: "APZFKT", path: "WIDE1-1",
+    mode: 1, symbol: "[", comment: "", status: "", msgText: "AA",
+    tocall: "APL2OY", path: "WIDE1-1",
     pathDigi: "WIDE1-1", pathTracker: "WIDE1-1,WIDE2-1", pathBoth: "WIDE1-1,WIDE2-1",
     latitude: null, longitude: null,          // no se tocan
-    // ★ LOS TRES INTERVALOS DESINCRONIZADOS (2026-09-15): 30 / 53 / 55, los mismos que
-    // trae el firmware de fabrica. Se eligieron SIN factores comunes (30 = 2x3x5, 53 es
-    // primo, 55 = 5x11) para que los tres paquetes automaticos no coincidan casi nunca
-    // en el mismo minuto y no salgan en rafaga. En un repetidor fijo la posicion no
-    // cambia: balizar cada 30 min es de sobra.
     beaconInterval: 30, overlay: "/", posAmbiguity: 0, compressedPos: false,
     digiMode: 2, cadActive: true, blacklist: "", txDisabled: false,
     frequency: 433775000, spreadingFactor: 12, codingRate4: 5,
-    signalBandwidth: 125, power: e22p ? 12 : 22,
-    wxSensorActive: true, sendBatteryTelemetry: true, telemetryIntervalMin: 53,
-    // ★ CAMPO NUEVO tambien aqui: el intervalo del paquete meteorologico propio (55 por
-    // defecto, ver la nota de los tres intervalos mas arriba).
+    signalBandwidth: 125, power: 22,
+    wxSensorActive: false, sendBatteryTelemetry: false, telemetryIntervalMin: 53,
     wxIntervalMin: 55,
     heightCorrection: 0, temperatureCorrection: 0, chipTempOffset: -3,
     trackerIntervalSecs: 120, trackerMinDistanceM: 150, trackerMinSpacing: 30,
-    smartBeaconPreset: 3, sendAltitude: true, gpsEco: false, gpsInDigi: false,
+    smartBeaconPreset: 1, sendAltitude: true, gpsEco: false, gpsInDigi: false,
     trackerSleep: false,
-    sceneAutoAdvance: true, screenTimeoutSecs: 0, popups: true,
-    // Mensaje de dormido: de fábrica viene VACÍO (config.h: char sleepMsg[64] = "").
+    sceneAutoAdvance: false, screenTimeoutSecs: 0, popups: true,
     sleepMsg: "",
     epdRotation: 1,
-    sleepCutMv: e22p ? 3500 : 3400, sleepWakeMv: 3710,
-    // Consultas por radio: de fabrica vienen APAGADAS y su propia ayuda dice que
-    // son "una puerta abierta". Los valores recomendados no pueden recomendar lo
-    // contrario de lo que dice la ayuda.
+    sleepCutMv: 3200, sleepWakeMv: 3400,
     remoteEnabled: false, managers: "", queriesEnabled: false, msgRetries: 3,
     tncProtocol: 0,
-    // BLUETOOTH APAGADO (2026-09-13): el firmware lo lleva FUERA de la
-    // compilacion, asi que recomendar "encendido" era recomendar algo que no
-    // hace nada: el usuario lo activaba, el nodo lo guardaba y no pasaba nada.
-    // El PIN se deja puesto porque es un dato suyo y volvera a servir cuando el
-    // Bluetooth vuelva a entrar.
     bleEnabled: false, blePin: "123456",
+    // Perfiles de uso: los aplica applyProfiles() (no son campos de `fields`).
+    profiles: [
+      { ssid: 0, slowSec: 0, fastSec: 0, distM: 0, symbol: "/#" },
+      { ssid: 7, slowSec: 0, fastSec: 0, distM: 0, symbol: "/[" },
+      { ssid: 8, slowSec: 0, fastSec: 0, distM: 0, symbol: "/b" },
+      { ssid: 5, slowSec: 0, fastSec: 0, distM: 0, symbol: "/>" },
+    ],
   };
 }
 function applyPreset(){
@@ -2592,6 +2582,7 @@ function applyPreset(){
       setTimeout(()=> wrap.classList.remove("changed"), 4000);
     }
   }
+  applyProfiles(p.profiles);
   updateNotes();
   toast(t("preset_done"));
 }
