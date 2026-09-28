@@ -15,10 +15,10 @@ couple of clicks and see on the e-paper screen that the spot went through.
 ### [🌐 Open the web configurator](https://remy33140.github.io/F4LEK-TECHO-APRS/web/)
 
 [What it adds](#-what-this-fork-adds) •
-[Buttons](#-buttons) •
-[SOTA guide](#-sota-step-by-step) •
-[Flashing](#-flashing) •
-[Building](#-building)
+[Installation](#-1-installation) •
+[Usage](#-2-usage) •
+[SOTA guide](#21-sota-and-the-sota-menus) •
+[Licence](#-3-licence)
 
 </div>
 
@@ -30,9 +30,6 @@ This is a fork of **[EA2OY APRS System](https://github.com/EA2OY/EA2OY-APRS-SYST
 ("Kacho System") by EA2OY. It brings the whole base: LoRa APRS digipeater and tracker,
 smart beaconing profiles, telemetry, APRS messaging, flash trip log, the e-paper driver
 and the web configurator. All credit for that goes to EA2OY.
-
-> 📘 For every function that is not SOTA-related, see his
-> [user manual](assets/Manual_Kacho_System.pdf).
 
 ## ✨ What this fork adds
 
@@ -47,7 +44,66 @@ and the web configurator. All credit for that goes to EA2OY.
 
 ---
 
-## 🔘 Buttons
+## 🔌 1. Installation
+
+### 1.1 Flashing the bootloader (S140 7.3.0), once per device
+
+The T-Echo ships with bootloader 0.6.1 + S140 **6.1.1**. This firmware targets
+**bootloader 0.11.0 + S140 7.3.0** (applications start at `0x27000`). Every file you
+need is in [`bootloader/`](bootloader/). Source and full guide:
+[ViezeVingertjes/lilygo-techo-bootloader](https://github.com/ViezeVingertjes/lilygo-techo-bootloader).
+
+1. **Check.** Connect the device to a computer using UCB-C cable. Double-press reset → the `TECHOBOOT` drive appears. `INFO_UF2.TXT` should
+   show `s140 6.1.1` and `Board-ID: nRF52840-TEcho-v1`.
+2. **Flash bootloader + SoftDevice over serial DFU.** Only the `.zip` can change the
+   SoftDevice; the `.uf2` files cannot.
+   ```bash
+   pip install --user adafruit-nrfutil
+   adafruit-nrfutil --verbose dfu serial \
+     --package bootloader/lilygo_techo_bootloader-0.11.0_s140_7.3.0.zip \
+     -p /dev/ttyACM0 -b 115200 --singlebank --touch 1200
+   ```
+   On Windows, use `-p COMx`. After this the T-Echo has no application and stays in the
+   bootloader. That is expected.
+
+
+> [!WARNING]
+> After the upgrade, only flash firmware built for S140 7.x (`0x27000`). An old 6.1.1 build
+> (`0x26000`) overwrites the end of the SoftDevice. If that happens, redo step 2.
+> To go back to factory, flash LilyGO's `0.6.1_s140_6.1.1` package the same way.
+
+### 1.2 Uploading the firmware
+
+Double-press reset and copy
+[`firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b104_T-Echo_S140v7.uf2`](firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b104_T-Echo_S140v7.uf2)
+onto `TECHOBOOT` (or your own build, see [1.3](#13-build-your-own)).
+
+Then configure the device:
+
+**👉 [Open the web configurator](https://remy33140.github.io/F4LEK-TECHO-APRS/web/)**
+
+Nothing to install: open the link in **Chrome or Edge** on a computer (WebSerial does not work
+in Firefox, Safari or on phones), plug the T-Echo in over USB, press **Connect** and set at least
+your **callsign**. **Fill in recommended values** loads the F4LEK settings (your callsign and
+coordinates are left untouched). The most common settings are also in the on-device menu.
+
+### 1.3 Build your own
+
+```bash
+cd firmware
+pio run -e techo_s140v7          # T-Echo
+pio run -e techo_plus_s140v7     # T-Echo Plus
+```
+
+The UF2 lands in `firmware/.pio/build/<env>/firmware.uf2`.
+
+---
+
+## 🗻 2. Usage
+
+### 2.1 SOTA and the SOTA menus
+
+#### Buttons
 
 The T-Echo has two controls: the **touch key** (capacitive pad) and the **physical button**.
 
@@ -62,18 +118,13 @@ The T-Echo has two controls: the **touch key** (capacitive pad) and the **physic
 > Menu and wizard close by themselves after **60 s** without a touch. Nothing gets saved or sent
 > if they time out.
 
----
-
-## 🗻 SOTA spot function step by step
-
-
-### 0 · Before your first activation
+#### 0 · Before your first activation
 
 Set your **callsign** (web configurator or on-device menu). The SOTA callsign is built from it:
 the SSID is removed and `/P` is added, e.g. `F4LEK-7` → `F4LEK/P`.
 If your callsign already has a `/`, it is used as it is.
 
-### 1 · Reach the SOTA menu
+#### 1 · Reach the SOTA menu
 
 ```
  On any screen                Main menu                    SOTA section
@@ -89,7 +140,7 @@ If your callsign already has a `/`, it is used as it is.
 2. **Touch twice** → cursor on `SOTA`. **Short press** to enter.
 3. **Touch twice** → `Plan activation`, or **three times** → `SOTA spot`. **Short press** to start.
 
-### 2 · Plan the activation
+#### 2 · Plan the activation
 
 Each step shows its title at the top of the screen. **Touch** moves the cursor, **short press**
 validates and goes to the next step, **long press** goes back to the previous step with your
@@ -112,7 +163,7 @@ After saving the plan appears on the **SOTA screen** of the
 carousel. It stays in flash across reboots until you plan another activation.
 
 
-#### The association list
+##### The association list
 
 The association list is long, so the firmware puts shortcuts **at the top**:
 
@@ -132,7 +183,7 @@ The association list is long, so the firmware puts shortcuts **at the top**:
 - **`* F`, `* EA2`…** are the associations you used recently. Picking one continues normally
   with the region.
 
-### 3 · Spot from the summit
+#### 3 · Spot from the summit
 
 1. Open `SOTA spot`
 2. `Comment`: pick one 
@@ -149,7 +200,7 @@ F/PE-103 145.500MHz SSB F4LEK/P QRV
 > If you open `SOTA spot` without a plan, the device shows `SOTA: no plan`. Plan first.
 
 
-### 4 · Check the SOTA screen
+#### 4 · Check the SOTA screen
 
 Short press or touch through the carousel until the **SOTA** screen:
 
@@ -178,68 +229,15 @@ Short press or touch through the carousel until the **SOTA** screen:
 The full answer from APRS2SOTA is also on the **Messages** screen. The status is kept in RAM only
 and resets to `--` after a reboot.
 
----
+### 2.2 Other functions
 
-## ⚙️ Configuration
-
-### 👉 [Open the web configurator](https://remy33140.github.io/F4LEK-TECHO-APRS/web/)
-
-Nothing to install: open the link in **Chrome or Edge** on a computer (WebSerial does not work
-in Firefox, Safari or on phones), plug the T-Echo in over USB, press **Connect** and set at least
-your **callsign**. **Fill in recommended values** loads the F4LEK settings (your callsign and
-coordinates are left untouched). The most common settings are also in the on-device menu.
+> 📘 For every function that is not SOTA-related (digipeater, tracker, beaconing profiles,
+> telemetry, messaging, trip log…), see EA2OY's
+> [Kacho System user manual](assets/Manual_Kacho_System.pdf).
 
 ---
 
-## 🔌 Flashing
-
-### Bootloader upgrade (S140 7.3.0), once per device
-
-The T-Echo ships with bootloader 0.6.1 + S140 **6.1.1**. This firmware targets
-**bootloader 0.11.0 + S140 7.3.0** (applications start at `0x27000`). Every file you
-need is in [`bootloader/`](bootloader/). Source and full guide:
-[ViezeVingertjes/lilygo-techo-bootloader](https://github.com/ViezeVingertjes/lilygo-techo-bootloader).
-
-1. **Check.** Connect the device to a computer using UCB-C cable. Double-press reset → the `TECHOBOOT` drive appears. `INFO_UF2.TXT` should
-   show `s140 6.1.1` and `Board-ID: nRF52840-TEcho-v1`.
-2. **Flash bootloader + SoftDevice over serial DFU.** Only the `.zip` can change the
-   SoftDevice; the `.uf2` files cannot.
-   ```bash
-   pip install --user adafruit-nrfutil
-   adafruit-nrfutil --verbose dfu serial \
-     --package bootloader/lilygo_techo_bootloader-0.11.0_s140_7.3.0.zip \
-     -p /dev/ttyACM0 -b 115200 --singlebank --touch 1200
-   ```
-   On Windows, use `-p COMx`. After this the T-Echo has no application and stays in the
-   bootloader. That is expected.
-
-
-> [!WARNING]
-> After the upgrade, only flash firmware built for S140 7.x (`0x27000`). An old 6.1.1 build
-> (`0x26000`) overwrites the end of the SoftDevice. If that happens, redo step 2.
-> To go back to factory, flash LilyGO's `0.6.1_s140_6.1.1` package the same way.
-
-### The firmware
-
-Double-press reset and copy
-[`firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b104_T-Echo_S140v7.uf2`](firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b104_T-Echo_S140v7.uf2)
-onto `TECHOBOOT` (or your own build, see below).
-
----
-
-## 🔧 Building
-
-```bash
-cd firmware
-pio run -e techo_s140v7          # T-Echo
-pio run -e techo_plus_s140v7     # T-Echo Plus
-```
-
-The UF2 lands in `firmware/.pio/build/<env>/firmware.uf2`.
-
----
-
-## 📄 Licence
+## 📄 3. Licence
 
 GPL-3.0 (see [`LICENSE`](LICENSE)), inherited from EA2OY APRS System. The files in `bootloader/`
 keep their own licences (MIT, and Nordic's licence for the SoftDevice).
