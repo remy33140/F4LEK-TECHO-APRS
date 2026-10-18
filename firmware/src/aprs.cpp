@@ -1233,9 +1233,14 @@ int16_t aprsSendWeather(const DigiConfig &cfg) {
 // Message started by the operator (CLI / web / menu): respects the TX mute and
 // carries a message number so the peer can acknowledge it.
 // Pending message waiting for its ack (APRS101 chapter 14: resend the same
-// message, with the same number, every 30 s until acknowledged).
+// message, with the same number, until acknowledged).
+// ★ 2026-10-18: first resend after 60 s, then every 120 s (was every 30 s). A message to
+//   an Internet station (APRS2SOTA) takes radio -> iGate -> APRS-IS -> gateway and back for
+//   the ack, and that round trip went past 30 s: the resend went out, APRS2SOTA took it as
+//   a second spot and answered "Dupe". Between two radios the ack still comes in seconds.
 namespace {
-constexpr uint32_t kMsgRetryMs = 30000;
+constexpr uint32_t kMsgFirstRetryMs = 60000;
+constexpr uint32_t kMsgNextRetryMs = 120000;
 struct PendingMsg {
   bool active = false;
   char to[12] = "";
@@ -1302,7 +1307,7 @@ void aprsMsgTick(const DigiConfig &cfg, uint32_t now) {
     return;
   }
   gPend.tries++;
-  gPend.nextMs = now + kMsgRetryMs;
+  gPend.nextMs = now + kMsgNextRetryMs;
   int16_t st = aprsSendTextFrame(cfg, frame, (size_t)n);
   flogLine("TX MSG reintento %u/%u -> %s %03u (%s)", (unsigned)(gPend.tries - 1),
            (unsigned)cfg.msgRetries, gPend.to, (unsigned)gPend.id,
@@ -1330,6 +1335,7 @@ int16_t aprsSendMessage(const DigiConfig &cfg, const char *to, const char *text)
   int16_t st = aprsSendTextFrame(cfg, frame, (size_t)n);  // honours the mute
   if (st == RADIOLIB_ERR_NONE) {
     displayNoteTx("MSG");
+    displayNoteMsgSent(to);  // a spot (to APRS2SOTA) from the menu OR the app: SOTA screen
     flogLine("TX MSG -> %s %s", to, t.c_str());
     // Wait for the ack; aprsMsgTick() resends it (same number) if it does not
     // arrive, and gives up after cfg.msgRetries extra attempts.
@@ -1341,7 +1347,7 @@ int16_t aprsSendMessage(const DigiConfig &cfg, const char *to, const char *text)
     gPend.text[sizeof(gPend.text) - 1] = '\0';
     gPend.id = mid;
     gPend.tries = 1;
-    gPend.nextMs = millis() + kMsgRetryMs;
+    gPend.nextMs = millis() + kMsgFirstRetryMs;
   }
   return st;
 }

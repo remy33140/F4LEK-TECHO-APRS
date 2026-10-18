@@ -1066,8 +1066,8 @@ const HELP = {
     es:"Contesta a las «consultas» APRS: otro radioaficionado puede preguntarte por tu posición, tu estado, qué estaciones oyes o cómo llega la señal, y el nodo responde. Es comportamiento normal de APRS; las órdenes de cambiar cosas siguen pidiendo estar en la lista de operadores.",
     en:"Answers APRS “queries”: another ham can ask for your position, status, which stations you hear or how the signal arrives, and the node replies. This is normal APRS behaviour; commands that change things still require being on the operators list."},
   msgRetries:{
-    es:"Si mandas un mensaje y el otro no acusa recibo, el nodo lo repite cada 30 segundos hasta este número de veces y luego avisa de que no hubo respuesta. 3 es lo normal. Cada reintento ocupa aire, así que no lo subas mucho.",
-    en:"If you send a message and the other station does not acknowledge it, the node repeats it every 30 seconds up to this many times and then reports that there was no answer. 3 is normal. Every retry takes air time, so do not raise it much."},
+    es:"Si mandas un mensaje y el otro no acusa recibo, el nodo lo repite (primero a los 60 segundos, luego cada 120) hasta este número de veces y luego avisa de que no hubo respuesta. 3 es lo normal. Cada reintento ocupa aire, así que no lo subas mucho.",
+    en:"If you send a message and the other station does not acknowledge it, the node repeats it (first after 60 seconds, then every 120) up to this many times and then reports that there was no answer. 3 is normal. Every retry takes air time, so do not raise it much."},
   tncProtocol:{
     es:"Convierte el nodo en un «módem» por USB para programas de APRS del ordenador o del móvil, con cable OTG. Apagado: el puerto es solo nuestro (configurador y consola). TNC2 texto: el programa habla el formato clásico de texto. KISS: formato binario, el que piden APRSdroid (Conexión: TNC, Protocolo: KISS), APRSIS32 y la LoRa APRS App. En KISS manda la aplicación: el nodo deja de enviar sus propias balizas, telemetría y meteorología (solo repite lo que oye y transmite lo que le manda la app). El formato TNC2 no cambia nada de eso. La consola y el configurador siguen funcionando en los tres modos: cambia aquí a «Apagado» para volver a lo de siempre.",
     en:"Turns the node into a USB “modem” for APRS programs on a computer or phone over an OTG cable. Off: the port is ours alone (configurator and console). TNC2 text: the program speaks the classic text format. KISS: binary format, the one APRSdroid (Connection: TNC, Protocol: KISS), APRSIS32 and the LoRa APRS App need. In KISS the application commands: the node stops sending its own beacons, telemetry and weather (it only digipeats what it hears and transmits what the app hands it). TNC2 changes none of that. The console and the configurator keep working in all three modes: switch back to “Off” here to return to normal.",
@@ -1246,7 +1246,7 @@ const SCHEMA = [
    {key:"managers", type:"text", label:{es:"Operadores autorizados",en:"Authorized operators"}, hint:{es:"Indicativos separados por espacios",en:"Space separated callsigns"}},
    {key:"queriesEnabled", type:"bool", label:{es:"Responder consultas APRS",en:"Answer APRS queries"}},
    {key:"msgRetries", type:"int", min:0, max:5, step:1, label:{es:"Reintentos de mensaje sin acuse",en:"Message retries without ack"},
-     hint:{es:"Cada 30 s, como manda el APRS",en:"Every 30 s, as APRS specifies"}},
+     hint:{es:"Primero a los 60 s, luego cada 120 s",en:"First after 60 s, then every 120 s"}},
    {key:"tncProtocol", type:"enum", vals:[0,1,2], label:{es:"Módem TNC (USB)",en:"TNC modem (USB)"},
      hint:{es:"KISS para APRSdroid; en KISS manda la app",en:"KISS for APRSdroid; in KISS the app commands"},
      opts:[{v:0,label:{es:"Apagado",en:"Off"}},{v:1,label:{es:"TNC2 texto",en:"TNC2 text"}},{v:2,label:{es:"KISS (binario)",en:"KISS (binary)"}}]},

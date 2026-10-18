@@ -123,7 +123,7 @@
     <string name="sota_connect">Connecter le T-Echo</string>
     <string name="sota_save_plan">Enregistrer comme plan sur le T-Echo</string>
     <string name="sota_st_sending">Envoi en cours…</string>
-    <string name="sota_st_sent">Émis — en attente de l\'accusé de réception (le T-Echo répète toutes les 30 s)</string>
+    <string name="sota_st_sent">Émis — en attente de l\'accusé de réception (le T-Echo le répète jusqu\'à la réponse de la passerelle)</string>
     <string name="sota_st_acked">✓ Reçu par la passerelle APRS2SOTA</string>
     <string name="sota_st_rejected">✗ Refusé par la passerelle</string>
     <string name="sota_st_noack">Pas d\'accusé reçu. Le spot a pu passer quand même : beaucoup d\'iGates LoRa ne retransmettent pas les réponses vers la radio. Vérifiez sur SOTAwatch.</string>
@@ -291,7 +291,7 @@
     <string name="f_sleepCutMv">Tension de coupure (mV)</string>
     <string name="f_sleepWakeMv">Tension de réveil (mV)</string>
     <string name="f_msgRetries">Répétitions sans accusé</string>
-    <string name="h_msgRetries">Toutes les 30 s</string>
+    <string name="h_msgRetries">D\'abord après 60 s, puis toutes les 120 s</string>
     <string name="f_remoteEnabled">Commande par radio</string>
     <string name="f_managers">Opérateurs autorisés</string>
     <string name="h_managers">Indicatifs séparés par des espaces</string>

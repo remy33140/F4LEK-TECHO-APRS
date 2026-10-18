@@ -3918,9 +3918,17 @@ void displayNoteMsg(const char *from, const char *text) {
   if (gSpot != SPOT_NINGUNO && from && strcasecmp(from, kSotaPasarela) == 0) {
     const MsgLog &e = gMsgLog[(gMsgLogHead - 1 + kMsgLogMax) % kMsgLogMax];
     const SpotEstado r = spotDeRespuesta(e.text);
-    if (r != SPOT_NINGUNO) gSpot = r;
+    // A "Dupe" right after "Spotted" is the gateway answering a resend of the SAME spot
+    // (its ack came back late): the spot is published, keep saying so.
+    if (r != SPOT_NINGUNO && !(r == SPOT_DUPE && gSpot == SPOT_SPOTTED)) gSpot = r;
   }
   gDirty = true;   // por si la escena "Mensajes" esta activa ahora mismo
+}
+
+void displayNoteMsgSent(const char *to) {
+  if (!to || strcasecmp(to, kSotaPasarela) != 0) return;
+  gSpot = SPOT_ENVIANDO;
+  gDirty = true;
 }
 
 void displayNoteMsgEnd(const char *to, MsgEnd how) {

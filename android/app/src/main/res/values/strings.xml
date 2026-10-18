@@ -124,7 +124,7 @@
     <string name="sota_connect">Connect the T-Echo</string>
     <string name="sota_save_plan">Save as plan on the T-Echo</string>
     <string name="sota_st_sending">Sending…</string>
-    <string name="sota_st_sent">Transmitted — waiting for the ack (the T-Echo repeats every 30 s)</string>
+    <string name="sota_st_sent">Transmitted — waiting for the ack (the T-Echo repeats it until the gateway answers)</string>
     <string name="sota_st_acked">✓ Received by the APRS2SOTA gateway</string>
     <string name="sota_st_rejected">✗ Rejected by the gateway</string>
     <string name="sota_st_noack">No ack received. The spot may have gone through anyway: many LoRa iGates do not send replies back to the radio. Check on SOTAwatch.</string>
@@ -292,7 +292,7 @@
     <string name="f_sleepCutMv">Cut-off voltage (mV)</string>
     <string name="f_sleepWakeMv">Wake-up voltage (mV)</string>
     <string name="f_msgRetries">Repeats without ack</string>
-    <string name="h_msgRetries">Every 30 s</string>
+    <string name="h_msgRetries">First after 60 s, then every 120 s</string>
     <string name="f_remoteEnabled">Remote control over radio</string>
     <string name="f_managers">Authorized operators</string>
     <string name="h_managers">Space-separated callsigns</string>

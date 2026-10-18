@@ -142,6 +142,9 @@ void displayNoteMsg(const char *from, const char *text);
 // scene uses it to show what became of the spot sent to APRS2SOTA.
 enum MsgEnd : uint8_t { MSG_END_ACK, MSG_END_REJ, MSG_END_NOACK };
 void displayNoteMsgEnd(const char *to, MsgEnd how);
+// A message went out (aprsSendMessage). To APRS2SOTA it is a spot, whoever sent it (device
+// menu, app, CLI): the SOTA screen shows "Sending" and then the gateway's answer.
+void displayNoteMsgSent(const char *to);
 
 // Periodic refresh (throttled internally ~500 ms).
 void displayRefresh(const DigiConfig &cfg, uint32_t rxCount, uint32_t txCount,

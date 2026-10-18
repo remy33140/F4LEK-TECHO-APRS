@@ -262,7 +262,9 @@ class SotaViewModel(private val techo: Techo) : ViewModel() {
         val t = track ?: return null
         val msgs = techo.messages.messages(Aprs.SOTA_GATEWAY)
         val mine = msgs.firstOrNull { it.rowId == t.rowId } ?: return null
-        val answer = msgs.lastOrNull { !it.outgoing && it.time >= t.sentAt }?.text
+        val answers = msgs.filter { !it.outgoing && it.time >= t.sentAt }.map { it.text }
+        // A "Dupe" after "Spotted" answers a resend of the same spot: the spot is published.
+        val answer = answers.lastOrNull { it.startsWith("Spotted", ignoreCase = true) } ?: answers.lastOrNull()
         return mine.state to answer
     }
 

@@ -71,11 +71,12 @@ class Techo(val ctx: Context) {
                 }
             }
         }
-        // Messages the node gave up on: one send + msgRetries resends, 30 s apart.
+        // Messages the node gave up on: one send, first resend after 60 s, then every 120 s
+        // (aprs.cpp aprsMsgTick); it gives up 120 s after the last resend.
         scope.launch {
             while (true) {
                 val retries = node.config.value?.optInt("msgRetries", 3) ?: 3
-                messages.expireSent((retries + 1) * 30_000L + 20_000L)
+                messages.expireSent(60_000L + retries * 120_000L + 20_000L)
                 delay(10_000)
             }
         }

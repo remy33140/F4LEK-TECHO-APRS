@@ -85,7 +85,7 @@ need is in [`bootloader/`](bootloader/). Source and full guide:
 ### 1.2 Flash the firmware
 
 Double-press reset and copy
-[`firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b109_T-Echo_S140v7.uf2`](firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b109_T-Echo_S140v7.uf2)
+[`firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b110_T-Echo_S140v7.uf2`](firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b110_T-Echo_S140v7.uf2)
 onto `TECHOBOOT` (or your own build, see [1.5](#15-build-your-own)).
 
 ### 1.3 Turn Bluetooth on
@@ -148,7 +148,7 @@ link; tap it to connect or disconnect.
 </table>
 
 **Send spot** hands the message to the T-Echo, which sends it to **APRS2SOTA**, numbers it and repeats
-it every 30 s until the gateway acknowledges it. The app then shows the ack and the gateway's answer
+it (after 60 s, then every 120 s) until the gateway acknowledges it. The app then shows the ack and the gateway's answer
 (*Spotted*…), and the spot also becomes the activation plan on the T-Echo, so its own **SOTA screen**
 shows the same summit, frequency and mode.
 
