@@ -41,6 +41,7 @@ and the web configurator. All credit for that goes to EA2OY.
 | 🏠 | **Clean home screen** | Position, speed, altitude, satellites, received messages. |
 | ✉️ | **Messages screen** | Keeps the received APRS messages. |
 | 🇬🇧 | **English UI** | All menus and screens. |
+| 📱 | **Android app** | SOTA spotting with instant summit search, WhatsApp-style APRS messaging and full device configuration over Bluetooth (see [1.3](#13-android-app)). |
 
 ---
 
@@ -75,8 +76,8 @@ need is in [`bootloader/`](bootloader/). Source and full guide:
 ### 1.2 Uploading the firmware
 
 Double-press reset and copy
-[`firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b104_T-Echo_S140v7.uf2`](firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b104_T-Echo_S140v7.uf2)
-onto `TECHOBOOT` (or your own build, see [1.3](#13-build-your-own)).
+[`firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b109_T-Echo_S140v7.uf2`](firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b109_T-Echo_S140v7.uf2)
+onto `TECHOBOOT` (or your own build, see [1.4](#14-build-your-own)).
 
 Then configure the device:
 
@@ -87,7 +88,24 @@ in Firefox, Safari or on phones), plug the T-Echo in over USB, press **Connect**
 your **callsign**. **Fill in recommended values** loads the F4LEK settings (your callsign and
 coordinates are left untouched). The most common settings are also in the on-device menu.
 
-### 1.3 Build your own
+### 1.3 Android app
+
+Install [`android/release/F4LEK-TECHO-APRS-app_v0.1.0.apk`](android/release/F4LEK-TECHO-APRS-app_v0.1.0.apk)
+on an Android 8 to 15 phone (allow installing from unknown sources). Turn **Bluetooth** on in the
+T-Echo menu, then press **Connect** in the app: Android asks for the T-Echo PIN (`123456` by default).
+
+- **SOTA**: pick the summit by typing part of its name or reference (`vign` → F/PO-001 Vignemale),
+  through association → region → summit, or *Near me* (T-Echo GPS). Choose frequency, mode, callsign
+  and comment, send the spot to APRS2SOTA and follow its ack and answer. The plan is also saved on
+  the T-Echo, whose SOTA screen follows it.
+- **Messages**: APRS conversations per station, delivery ticks, notifications.
+- **Settings**: every setting of the device, status (battery, GPS, radio), beacon now, reboot.
+- English or French (Settings → App → Language).
+
+The SOTA summit list ships with the app and works offline; **Update list** downloads the latest
+one from sota.org.uk. Source and build instructions: [`android/`](android/README.md).
+
+### 1.4 Build your own
 
 ```bash
 cd firmware

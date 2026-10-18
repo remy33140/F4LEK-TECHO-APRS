@@ -23,6 +23,7 @@
 // node is running (main loop, or the Bluetooth start-up with Bluetooth on).
 // License: GPL-3.0
 
+#include "nvm.h"
 #include "flog.h"
 
 #include <stdarg.h>
@@ -61,38 +62,11 @@ uint16_t crc16(const uint8_t *d, size_t n) {
   return crc;
 }
 
-void nvmcWaitReady() {
-  while (!NRF_NVMC->READY) {
-  }
-}
+// Flash por nvm.cpp: con el SoftDevice arriba NVMC no se puede tocar a mano (ver nvm.h).
+void nvmcErasePage(uint32_t addr) { nvmErasePage(addr); }
 
-void nvmcErasePage(uint32_t addr) {
-  nvmcWaitReady();
-  NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Een;
-  nvmcWaitReady();
-  NRF_NVMC->ERASEPAGE = addr;
-  nvmcWaitReady();
-  NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
-}
-
-// Write an arbitrary byte range (flash needs whole 32-bit words, padded 0xFF).
 void nvmcWriteBytes(uint32_t addr, const uint8_t *data, size_t len) {
-  if (len == 0) return;
-  size_t words = (len + 3) / 4;
-  nvmcWaitReady();
-  NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
-  nvmcWaitReady();
-  for (size_t i = 0; i < words; i++) {
-    uint32_t w = 0xFFFFFFFFu;
-    uint8_t *p = (uint8_t *)&w;
-    for (size_t b = 0; b < 4; b++) {
-      size_t idx = i * 4 + b;
-      if (idx < len) p[b] = data[idx];
-    }
-    *(volatile uint32_t *)(addr + i * 4) = w;
-    nvmcWaitReady();
-  }
-  NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
+  nvmWrite(addr, data, len);
 }
 
 uint32_t pageAddr(uint8_t page) {

@@ -2557,9 +2557,7 @@ static bool avisoItemInerte(const char *key) {
   // "Avisos": cfg.popups solo lo lee la OLED (display.cpp). Aqui los avisos son la banda
   // "TX" y la linea de estado, y no se pueden desactivar con ese ajuste.
   if (!strcmp(key, "popups")) return true;
-  // "Bluetooth" y "PIN BT": el BLE esta FUERA DE COMPILACION (src/ble_kiss.cpp.off), asi que
-  // los dos valores son inertes en las DOS placas, no solo en esta.
-  if (!strcmp(key, "bleEnabled") || !strcmp(key, "blePin")) return true;
+  // "Bluetooth" y "PIN BT": ya NO son inertes (2026-10-17): los lee src/ble_kiss.cpp.
   return false;
 }
 
@@ -3632,6 +3630,19 @@ void menuPinta() {
           drawText(14, y, conAviso, esc);
         } else {
           drawText(14, y, it.label, esc);
+        }
+        // ★ CASILLA DE LOS ON/OFF (2026-10-17): un MK_BOOL cambia EN EL SITIO con un toque
+        //   (menuShort -> editaSiguiente) y la fila solo ensenaba la etiqueta, asi que el
+        //   toque no se veia ("pulso Bluetooth y no pasa nada"). Casilla llena = ON, vacia =
+        //   OFF. Cabe: la etiqueta mas larga ("Remote control", 14 letras) acaba en x=180.
+        if (it.kind == MK_BOOL) {
+          JsonDocument doc;
+          configToJson(*gCfg, doc.to<JsonObject>());
+          const bool on = doc[it.key] | false;
+          const int x0 = 182, x1 = 191, y0c = y + 1, y1c = y + 12;
+          barraH(x0, x1, y0c, 1); barraH(x0, x1, y1c, 1);
+          barraV(x0, y0c, y1c, 1); barraV(x1, y0c, y1c, 1);
+          if (on) for (int yy = y0c + 2; yy <= y1c - 2; yy++) barraH(x0 + 2, x1 - 2, yy, 1);
         }
       }
     }

@@ -40,7 +40,11 @@ MEMORY
    *   SoftDevice depende de como este construido el suyo. Si algun dia el Bluetooth no
    *   arranca en una placa con este guion, esto es lo primero que hay que mirar (el arranque
    *   de la aplicacion devuelve por donde empieza la RAM libre). */
-  RAM (rwx) :  ORIGIN = 0x20004260, LENGTH = 0x20040000 - 0x20004260
+  /* ★ 2026-10-17: VUELTA A 0x20006000, la del core de Adafruit (y Meshtastic). 0x20004260 era
+   * la de un firmware hecho con el SDK de Nordic y una configuracion BLE minima; la de
+   * Bluefruit (tabla GATT, MTU 247, colas) pide mas, y sd_ble_enable() fallaria por RAM.
+   * El SoftDevice usa 0x20000000..ORIGIN-1: subir el ORIGIN le DA RAM, no se la quita. */
+  RAM (rwx) :  ORIGIN = 0x20006000, LENGTH = 0x20040000 - 0x20006000
 }
 
 SECTIONS

@@ -101,6 +101,10 @@ Origen configProtocolOrigen();
    corromper la linea que se estaba formando). */
 bool configProtocolEmpujaBle(const uint8_t *datos, size_t n);
 
+// El enlace Bluetooth entrega aqui los bytes de su servicio de configuracion (desde bleLoop,
+// nunca desde la tarea del stack). Van al anillo del receptor de lineas, marcados como BLE.
+void bleHostFeed(const uint8_t *datos, size_t n);
+
 // Tira la linea del Bluetooth a medias. La llama el enlace al desconectar el huesped: si una
 // escritura se corto (el movil se alejo a mitad de un JSON), sus restos no pueden quedarse ahi
 // para envenenar la primera linea de la conexion siguiente.

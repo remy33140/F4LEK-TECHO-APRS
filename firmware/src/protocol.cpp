@@ -513,6 +513,9 @@ void ConfigProtocol::handleMessage(const JsonDocument &doc) {
   m["text"] = text;
   m["tx"] = ok;
   m["code"] = st;
+  // El numero del mensaje (el "{NNN"), para que la app case el ack que llegue por KISS.
+  uint16_t mid = 0;
+  if (ok && aprsMsgPending(nullptr, 0, &mid, nullptr)) m["id"] = mid;
   if (!ok) out["error"] = "message not sent";
   sendJsonDoc(out);
 }

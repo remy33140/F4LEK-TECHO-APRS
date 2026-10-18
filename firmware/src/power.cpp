@@ -345,6 +345,8 @@ void powerSleepNow(const DigiConfig &cfg) {
       (cfg.mode != 0 || aprsCanBeacon(cfg))) {
     aprsSendBannerBeacon(cfg, "DURMIENDO HASTA EL SOL");
   }
+  // El SoftDevice abajo ANTES de escribir GPREGRET2: POWER es periferico protegido.
+  bleShutdown();
   gWokeFromSleep = false;
   NRF_POWER->GPREGRET2 = 0xA5u;
 

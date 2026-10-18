@@ -10,6 +10,7 @@
 #include <RadioLib.h>
 
 #include "aprs.h"
+#include "ble_kiss.h"
 #include "button.h"
 #include "config.h"
 #include "diag.h"
@@ -291,6 +292,7 @@ void setup() {
   tncBindConfig(&gConfig);
   diagBindConfig(&gConfig);
   displayBindConfig(&gConfig);
+  bleBindConfig(&gConfig);
   // ★★ EL PROTOCOLO Y EL BLUETOOTH (2026-09-17) ★★
   //   El protocolo se engancha aqui para que los bytes del Bluetooth puedan entrar en el
   //   MISMO receptor de lineas que los del cable: el enlace Bluetooth escribe en ese objeto
@@ -423,6 +425,11 @@ flogLine("EVT boot v%s %s mode=%u", APP_VERSION_STR, APP_BUILD_NUM,
   //
   // Y el arranque del Bluetooth NO se hace aqui: se hace al principio (ver arriba).
 
+  // ★ BLUETOOTH (2026-10-17): al final, con la flash ya pasando por nvm.cpp. La causa del
+  //   antiguo "bucle" eran las escrituras a mano en NVMC/POWER con el SoftDevice arriba
+  //   (NRF_FAULT_ID_APP_MEMACC), no el orden del arranque: ver ble_kiss.h.
+  bleLinkInit();
+
   displaySplash();  // 4 s boot splash (non-blocking)
 
   // ★ AVISO DE ARRANQUE por vibracion (2026-09-15). Va AQUI, al final del setup, y no
@@ -452,6 +459,7 @@ void loop() {
   usbDiagTick(millis());   // latido del USB (diagnostico, ver protocol.h)
   gProtocol.feed(Serial);   // LEER EL USB: sin esta linea el nodo no obedece a nada
   drainButton();            // y drenar el boton despues
+  bleLoop();                // Bluetooth: tramas KISS del movil -> radio
 
   // The trip log follows the working mode (on in tracker/both, off in digi).
   if (gConfig.mode != lastLogMode) {

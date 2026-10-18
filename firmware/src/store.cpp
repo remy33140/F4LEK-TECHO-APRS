@@ -6,6 +6,7 @@
 // header carries magic + version + seq + CRC32 of the JSON payload.
 // License: GPL-3.0
 
+#include "nvm.h"
 #include "store.h"
 
 #include "power.h"
@@ -42,30 +43,11 @@ uint32_t crc32(const uint8_t *data, size_t len) {
   return ~crc;
 }
 
-void nvmcWaitReady() {
-  while (!NRF_NVMC->READY) {
-  }
-}
-
-void nvmcErasePage(uint32_t addr) {
-  nvmcWaitReady();
-  NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Een;
-  nvmcWaitReady();
-  NRF_NVMC->ERASEPAGE = addr;
-  nvmcWaitReady();
-  NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
-}
+// Flash por nvm.cpp: con el SoftDevice arriba NVMC no se puede tocar a mano (ver nvm.h).
+void nvmcErasePage(uint32_t addr) { nvmErasePage(addr); }
 
 void nvmcWriteWords(uint32_t addr, const uint32_t *words, size_t count) {
-  nvmcWaitReady();
-  NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen;
-  nvmcWaitReady();
-  for (size_t i = 0; i < count; i++) {
-    *(volatile uint32_t *)addr = words[i];
-    addr += 4;
-    nvmcWaitReady();
-  }
-  NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren;
+  nvmWrite(addr, words, count * 4);
 }
 
 void readPage(uint32_t addr, uint8_t *out) {
