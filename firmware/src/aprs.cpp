@@ -1239,7 +1239,9 @@ constexpr uint32_t kMsgRetryMs = 30000;
 struct PendingMsg {
   bool active = false;
   char to[12] = "";
-  char text[64] = "";
+  // Same cap as aprsSendMessage() (200): with 64 the resends of a 64..67-char message (the APRS
+  // limit, what the Android app allows) went out cut, under the same message number.
+  char text[201] = "";
   uint16_t id = 0;
   uint8_t tries = 0;   // transmissions already made
   uint32_t nextMs = 0;
@@ -1805,6 +1807,12 @@ void aprsHandleRadioPacket(const uint8_t *data, size_t len, float rssi, float sn
   text.reserve((unsigned int)(len - 3));
   for (size_t i = 3; i < len; i++) text += (char)data[i];
   if (text.indexOf("NOGATE") >= 0) return;
+  // The packet as heard, before the third-party unwrap below: that is what goes to the hosts
+  // (KISS/TNC2). The inner frame of a gated message often has a source AX.25 cannot carry
+  // ("APRS2SOTA" is 9 characters, AX.25 allows 6), so forwarding it unwrapped dropped every
+  // message coming from APRS-IS. The outer frame is plain AX.25; APRSdroid and the F4LEK app
+  // read the "}" header themselves, as with any TNC.
+  const String heard = text;
 // APRS third-party packet: unwrap the embedded frame.
 // Example:
 // F4LEK-10>APLRG1,WIDE1-1:}F4LEK-9>APDR17,TCPIP,F4LEK-10*::F4LEK-7 :Hello
@@ -1834,8 +1842,8 @@ if (thirdParty >= 0) {
   if (sender == cfg.callsign) return;  // never repeat ourselves
   if (isBlacklisted(cfg, sender)) return;
 
-  // USB TNC mode: mirror every valid frame to the host (APRSdroid TNC2).
-  tncOutputFrame(text.c_str());
+  // USB TNC mode: mirror every valid frame to the host (APRSdroid TNC2), as heard.
+  tncOutputFrame(heard.c_str());
   diagRxFrame(sender.c_str(), text.c_str(), rssi, snr);
 
   gLastRssi = rssi;

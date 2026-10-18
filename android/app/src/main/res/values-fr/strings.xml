@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Commun -->
+    <string name="cancel">Annuler</string>
+    <string name="confirm">Confirmer</string>
+    <string name="open">Ouvrir</string>
+    <string name="delete">Supprimer</string>
+    <string name="save">Enregistrer</string>
+    <string name="refresh">Actualiser</string>
+    <string name="connect">Connecter</string>
+    <string name="disconnect">Déconnecter</string>
+    <string name="error">Erreur</string>
+    <string name="back">Retour</string>
+    <string name="send">Envoyer</string>
+    <string name="clear">Effacer</string>
+    <string name="failed">Échec : %1$s</string>
+
+    <!-- Navigation -->
+    <string name="tab_sota">SOTA</string>
+    <string name="tab_messages">Messages</string>
+    <string name="tab_settings">Réglages</string>
+    <string name="title_sota">Spot SOTA</string>
+    <string name="title_settings">Réglages du T-Echo</string>
+    <string name="chip_connecting">Connexion…</string>
+    <string name="chip_scanning">Recherche…</string>
+
+    <!-- Langue -->
+    <string name="app_section">Application</string>
+    <string name="language">Langue</string>
+    <string name="lang_system">Langue du téléphone</string>
+    <string name="lang_en">English</string>
+    <string name="lang_fr">Français</string>
+
+    <!-- Liaison Bluetooth -->
+    <string name="link_scan_failed">Recherche impossible (code %1$d)</string>
+    <string name="link_bt_off">Bluetooth éteint</string>
+    <string name="link_bad_address">Adresse invalide</string>
+    <string name="link_pairing">Appairage (PIN affiché sur le T-Echo)…</string>
+    <string name="link_pairing_refused">Appairage refusé</string>
+    <string name="link_connecting">Connexion…</string>
+    <string name="link_pairing_failed">Appairage échoué (PIN incorrect ?)</string>
+    <string name="link_mtu">Négociation MTU…</string>
+    <string name="link_disconnected">Déconnecté</string>
+    <string name="link_lost">Perte du lien (%1$d)</string>
+    <string name="link_discovering">Découverte des services…</string>
+    <string name="link_not_techo">Ce n\'est pas un T-Echo APRS (pas de service KISS)</string>
+    <string name="link_rereading">Nouveaux services : relecture…</string>
+    <string name="link_encryption">Le T-Echo refuse le chiffrement : supprimez l\'appareil dans les réglages Bluetooth du téléphone puis reconnectez.</string>
+    <string name="link_retry">%1$s — nouvel essai dans %2$d s</string>
+    <string name="svc_connecting">Connexion au T-Echo…</string>
+    <string name="svc_connected">Connecté à %1$s</string>
+    <string name="ch_messages">Messages APRS</string>
+    <string name="ch_link">Liaison Bluetooth</string>
+
+    <!-- Nœud -->
+    <string name="node_no_cfg">Pas de canal de configuration (firmware à mettre à jour ?)</string>
+    <string name="node_no_answer">Le T-Echo ne répond pas</string>
+    <string name="node_msg_not_sent">Message non émis (code %1$d)</string>
+    <string name="beacon_sent">Balise émise</string>
+    <string name="beacon_not_sent">Balise non émise : %1$s</string>
+    <string name="beacon_code">code %1$d</string>
+    <string name="err_nocall">Indicatif du T-Echo inconnu (pas de canal de configuration)</string>
+    <string name="err_bad_call">Indicatif non valide en AX.25 : %1$s</string>
+    <string name="err_not_connected">T-Echo non connecté</string>
+    <string name="err_empty_list">Liste vide</string>
+
+    <!-- Panneau de connexion -->
+    <string name="cs_connected_to">Connecté à %1$s</string>
+    <string name="cs_kiss_cfg">KISS + configuration · MTU %1$d</string>
+    <string name="cs_kiss_only">KISS seulement : mettez le firmware à jour pour la configuration et le spot SOTA par le T-Echo.</string>
+    <string name="cs_services">Services vus : %1$s</string>
+    <string name="cs_bt_off">Le Bluetooth du téléphone est éteint.</string>
+    <string name="cs_open_bt">Ouvrir les réglages Bluetooth</string>
+    <string name="cs_nearby">Appareils à proximité</string>
+    <string name="cs_search">Rechercher</string>
+    <string name="cs_none">Aucun T-Echo trouvé. Vérifiez que le Bluetooth est activé dans le menu du T-Echo.</string>
+    <string name="cs_last_used">" · dernier utilisé"</string>
+    <string name="cs_reconnect">Reconnecter le dernier (%1$s)</string>
+    <string name="cs_pin_hint">À la première connexion, Android demande le PIN affiché sur le T-Echo (123456 par défaut).</string>
+
+    <!-- Messages -->
+    <string name="msg_none">Aucune conversation</string>
+    <string name="msg_none_hint">Les messages APRS reçus par le T-Echo pour %1$s apparaîtront ici.</string>
+    <string name="msg_me">"Moi : "</string>
+    <string name="msg_new">Nouvelle conversation</string>
+    <string name="msg_call_label">Indicatif (ex. F4ABC-7)</string>
+    <string name="msg_gateway">APRS2SOTA (passerelle SOTA)</string>
+    <string name="msg_delete_q">Supprimer la conversation avec %1$s ?</string>
+    <string name="msg_hint">Message</string>
+    <string name="msg_rejected">refusé</string>
+    <string name="msg_no_ack">sans accusé</string>
+    <string name="msg_not_sent">Non envoyé : %1$s</string>
+
+    <!-- SOTA -->
+    <string name="sota_summit">Sommet</string>
+    <string name="sota_search_hint">Nom ou référence : vign, PO-001…</string>
+    <string name="sota_no_result">Aucun sommet trouvé</string>
+    <string name="sota_assoc">Assoc.</string>
+    <string name="sota_region">Région</string>
+    <string name="sota_near">Près de moi</string>
+    <string name="sota_gps">GPS du T-Echo</string>
+    <string name="sota_recent">Récents</string>
+    <string name="sota_points">%1$d pts</string>
+    <string name="sota_bonus">" + %1$d bonus hiver"</string>
+    <plurals name="sota_activations">
+        <item quantity="one">%1$d activation</item>
+        <item quantity="many">%1$d activations</item>
+        <item quantity="other">%1$d activations</item>
+    </plurals>
+    <string name="sota_freq_mode">Fréquence et mode</string>
+    <string name="sota_freq">Fréquence</string>
+    <string name="sota_mode">Mode</string>
+    <string name="sota_call_comment">Indicatif et commentaire</string>
+    <string name="sota_prefix">Préfixe</string>
+    <string name="sota_call">Indicatif</string>
+    <string name="sota_prefix_hint">Préfixe seulement en activation à l\'étranger. Spot au nom de %1$s</string>
+    <string name="sota_comment">Commentaire (facultatif)</string>
+    <string name="sota_send_section">Envoi</string>
+    <string name="sota_to">Vers APRS2SOTA :</string>
+    <string name="sota_incomplete">Choisissez un sommet, une fréquence et un indicatif</string>
+    <string name="sota_chars">%1$d/67 caractères</string>
+    <string name="sota_send">Envoyer le spot</string>
+    <string name="sota_connect">Connecter le T-Echo</string>
+    <string name="sota_save_plan">Enregistrer comme plan sur le T-Echo</string>
+    <string name="sota_st_sending">Envoi en cours…</string>
+    <string name="sota_st_sent">Émis — en attente de l\'accusé de réception (le T-Echo répète toutes les 30 s)</string>
+    <string name="sota_st_acked">✓ Reçu par la passerelle APRS2SOTA</string>
+    <string name="sota_st_rejected">✗ Refusé par la passerelle</string>
+    <string name="sota_st_noack">Pas d\'accusé reçu. Le spot a pu passer quand même : beaucoup d\'iGates LoRa ne retransmettent pas les réponses vers la radio. Vérifiez sur SOTAwatch.</string>
+    <string name="sota_answer">APRS2SOTA : %1$s</string>
+    <string name="sota_update_list">Mettre à jour la liste</string>
+    <string name="sota_loading">Chargement de la liste des sommets…</string>
+    <string name="sota_importing">Import des sommets… %1$d</string>
+    <string name="sota_unreadable">Liste des sommets illisible : %1$s</string>
+    <string name="sota_list_info">%1$d sommets valides</string>
+    <string name="sota_list_date">" · liste du %1$s"</string>
+    <string name="sota_no_gps">Pas de position GPS sur le T-Echo</string>
+    <string name="sota_none_near">Aucun sommet à moins de 25 km</string>
+    <string name="sota_downloading">Téléchargement de la liste SOTA…</string>
+    <string name="sota_list_updated">Liste des sommets à jour</string>
+    <string name="sota_download_failed">Échec du téléchargement : %1$s</string>
+    <string name="sota_too_long">Message trop long pour APRS (%1$d/67) : raccourcissez le commentaire</string>
+    <string name="sota_spot_sent">Spot envoyé : %1$s</string>
+    <string name="sota_bad_freq">Fréquence invalide</string>
+    <string name="sota_freq_limit">Le T-Echo ne mémorise que des fréquences inférieures à 1000 MHz</string>
+    <string name="sota_plan_saved_pfx">Plan enregistré (préfixe « %1$s » inconnu du T-Echo : ignoré)</string>
+    <string name="sota_plan_saved">Plan enregistré sur le T-Echo</string>
+
+    <!-- Écran Réglages -->
+    <string name="cfg_between">Entre %1$s et %2$s</string>
+    <string name="cfg_0_or_15">0, ou 15 et plus</string>
+    <string name="cfg_6digits">6 chiffres</string>
+    <string name="cfg_required">Obligatoire</string>
+    <string name="cfg_dup_ssid">Deux profils ne peuvent pas avoir le même SSID</string>
+    <string name="cfg_fix">À corriger : %1$s</string>
+    <string name="cfg_nothing">Rien à enregistrer</string>
+    <string name="cfg_saved_reboot">Enregistré. Redémarrez le T-Echo pour appliquer la radio / le PIN.</string>
+    <string name="cfg_saved">Enregistré sur le T-Echo</string>
+    <string name="cfg_refused">Refusé par le T-Echo : %1$s</string>
+    <string name="cfg_connect_prompt">Connectez le T-Echo pour lire et modifier sa configuration.</string>
+    <string name="cfg_kiss_only">Ce firmware ne publie que le service KISS. Mettez à jour le firmware du T-Echo (service de configuration Bluetooth) pour régler l\'appareil depuis l\'application.</string>
+    <string name="cfg_reading">Lecture de la configuration…</string>
+    <string name="cfg_status_updated">État à jour</string>
+    <string name="cfg_actions">Actions</string>
+    <string name="cfg_beacon_now">Balise maintenant</string>
+    <string name="cfg_reread">Relire</string>
+    <string name="cfg_reread_done">Configuration relue</string>
+    <string name="cfg_reboot">Redémarrer</string>
+    <string name="cfg_factory">Réglages d\'usine</string>
+    <string name="cfg_console_show">Console du T-Echo</string>
+    <string name="cfg_console_hide">Masquer la console</string>
+    <string name="cfg_reboot_q">Redémarrer le T-Echo ?</string>
+    <string name="cfg_factory_q">Revenir aux réglages d\'usine ?</string>
+    <string name="cfg_reboot_text">La configuration est conservée. La connexion Bluetooth sera rétablie automatiquement.</string>
+    <string name="cfg_factory_text">Toute la configuration est effacée, sauf l\'indicatif, les opérateurs autorisés et la commande à distance.</string>
+    <string name="cfg_rebooting">Redémarrage…</string>
+    <string name="cfg_factory_done">Réglages d\'usine restaurés</string>
+    <string name="cfg_unsaved">Modifications non enregistrées</string>
+    <string name="cfg_invalid">Valeurs à corriger</string>
+    <string name="cfg_status">État du T-Echo</string>
+    <string name="cfg_battery">Batterie : %1$.2f V</string>
+    <string name="cfg_gps_fix">GPS : %1$.5f, %2$.5f · %3$d m · %4$d sat.</string>
+    <string name="cfg_gps_nofix">GPS : pas de position (%1$d satellites en vue)</string>
+    <string name="cfg_radio">Radio %1$s · %2$s · RX %3$d / TX %4$d</string>
+    <string name="cfg_last_rssi">" · dernier %1$.0f dBm"</string>
+    <string name="cfg_weather">Météo : %1$.1f °C · %2$.0f %% · %3$.1f hPa</string>
+    <string name="cfg_changed">%1$d modifié(s)</string>
+    <string name="cfg_reboot_needed">Redémarrage nécessaire</string>
+    <string name="cfg_take_gps">Prendre la position GPS du T-Echo</string>
+    <string name="cfg_profiles_hint">SSID, symbole et rythme de balise par profil (0 = valeur par défaut)</string>
+    <string name="prof_symbol">Symbole</string>
+    <string name="prof_ssid">SSID</string>
+    <string name="prof_slow">Lent (s)</string>
+    <string name="prof_fast">Rapide (s)</string>
+    <string name="prof_dist">Dist. (m)</string>
+    <string name="console_replies">Réponses du T-Echo</string>
+    <string name="console_heard">Trames entendues par la radio</string>
+    <string name="latitude">Latitude</string>
+    <string name="longitude">Longitude</string>
+
+    <!-- Schéma de configuration : sections -->
+    <string name="s_station">Station</string>
+    <string name="s_paths">Chemins (sauts)</string>
+    <string name="s_beacons">Balises</string>
+    <string name="s_tracker">Tracker</string>
+    <string name="s_digi">Relais (digipeater)</string>
+    <string name="s_radio">Radio LoRa</string>
+    <string name="s_sensors">Capteurs et télémétrie</string>
+    <string name="s_screen">Écran</string>
+    <string name="s_power">Énergie</string>
+    <string name="s_remote">Messages et contrôle à distance</string>
+    <string name="s_bluetooth">Bluetooth</string>
+
+    <!-- Schéma de configuration : champs -->
+    <string name="f_callsign">Indicatif</string>
+    <string name="h_callsign">Ex. F4LEK-7. Sans indicatif réel, le T-Echo n\'émet rien.</string>
+    <string name="f_mode">Mode de travail</string>
+    <string name="o_mode_digi">Relais (digipeater)</string>
+    <string name="o_mode_tracker">Tracker</string>
+    <string name="o_mode_both">Les deux</string>
+    <string name="f_symbol">Symbole APRS</string>
+    <string name="h_symbol"># relais, [ piéton, > voiture, b vélo</string>
+    <string name="f_overlay">Table / overlay du symbole</string>
+    <string name="h_overlay">/ table principale, \\ alternative, lettre ou chiffre = overlay</string>
+    <string name="f_comment">Commentaire</string>
+    <string name="h_comment">Ajouté à chaque balise</string>
+    <string name="f_status">Message de statut</string>
+    <string name="f_msgText">Message rapide enregistré</string>
+    <string name="h_msgText">Envoyé depuis l\'écran du T-Echo</string>
+    <string name="h_path">Ex. WIDE1-1 ou WIDE1-1,WIDE2-1 ; 0 = aucun saut</string>
+    <string name="f_pathDigi">En mode relais</string>
+    <string name="f_pathTracker">En mode tracker</string>
+    <string name="f_pathBoth">En mode les deux</string>
+    <string name="f_path">Chemin de secours</string>
+    <string name="h_path_fallback">Utilisé si celui du mode est vide</string>
+    <string name="f_position">Position fixe</string>
+    <string name="f_beaconInterval">Balise fixe toutes les (min)</string>
+    <string name="h_beaconInterval">15 minimum</string>
+    <string name="f_posAmbiguity">Masquer des chiffres de la position</string>
+    <string name="f_compressedPos">Position compressée (tracker)</string>
+    <string name="f_trackerIntervalSecs">Balise toutes les (s)</string>
+    <string name="f_trackerMinDistanceM">Balise tous les X mètres (0 = non)</string>
+    <string name="f_trackerMinSpacing">Délai minimum entre balises (s)</string>
+    <string name="h_trackerMinSpacing">Chaque balise SF12 occupe ~4 s d\'air</string>
+    <string name="f_smartBeaconPreset">Profil de déplacement</string>
+    <string name="o_preset_none">Aucun</string>
+    <string name="o_preset_walk">À pied</string>
+    <string name="o_preset_bike">Vélo</string>
+    <string name="o_preset_car">Voiture</string>
+    <string name="f_sendAltitude">Envoyer l\'altitude</string>
+    <string name="f_trackerSleep">Dormir entre les balises</string>
+    <string name="h_trackerSleep">Pas en mode « les deux »</string>
+    <string name="f_profiles">Profils d\'utilisation</string>
+    <string name="prof_fixed">Fixe</string>
+    <string name="prof_walk">À pied</string>
+    <string name="prof_bike">Vélo</string>
+    <string name="prof_car">Voiture</string>
+    <string name="f_digiMode">Mode relais</string>
+    <string name="o_off">Arrêt</string>
+    <string name="f_cadActive">Écouter avant d\'émettre</string>
+    <string name="f_blacklist">Liste noire</string>
+    <string name="h_blacklist">Indicatifs séparés par des espaces, * joker</string>
+    <string name="f_txDisabled">Silence radio (ne pas émettre)</string>
+    <string name="f_gpsInDigi">Utiliser le GPS au lieu de la position fixe</string>
+    <string name="f_gpsEco">Économie GPS (relais seulement)</string>
+    <string name="f_frequency">Fréquence (Hz)</string>
+    <string name="h_frequency">433775000 = réseau LoRa APRS européen</string>
+    <string name="f_spreadingFactor">Spreading factor (SF)</string>
+    <string name="f_codingRate4">Coding rate (4/x)</string>
+    <string name="f_signalBandwidth">Largeur de bande (kHz)</string>
+    <string name="f_power">Puissance (dBm)</string>
+    <string name="h_power">22 dBm max sur le SX1262 du T-Echo</string>
+    <string name="f_wxSensorActive">Météo dans la balise</string>
+    <string name="f_sendBatteryTelemetry">Tension batterie dans la balise</string>
+    <string name="f_telemetryIntervalMin">Télémétrie auto toutes les (min, 0 = non)</string>
+    <string name="f_wxIntervalMin">Météo auto toutes les (min, 0 = non)</string>
+    <string name="h_interval_15">0, ou 15 à 720</string>
+    <string name="f_heightCorrection">Correction d\'altitude (m)</string>
+    <string name="f_temperatureCorrection">Correction de la sonde (°C)</string>
+    <string name="f_chipTempOffset">Correction du capteur interne (°C)</string>
+    <string name="f_epdRotation">Orientation</string>
+    <string name="o_rot_1">Droit (normal)</string>
+    <string name="o_rot_2">Tourné 90°</string>
+    <string name="o_rot_3">Retourné 180°</string>
+    <string name="o_rot_0">Tourné 270°</string>
+    <string name="f_sceneAutoAdvance">Faire défiler les écrans</string>
+    <string name="f_screenTimeoutSecs">Éteindre l\'écran après (s, 0 = jamais)</string>
+    <string name="f_popups">Notifications à l\'écran</string>
+    <string name="f_sleepMsg">Message de veille</string>
+    <string name="h_sleepMsg">Reste affiché pendant la veille</string>
+    <string name="f_sleepCutMv">Tension de coupure (mV)</string>
+    <string name="f_sleepWakeMv">Tension de réveil (mV)</string>
+    <string name="f_msgRetries">Répétitions sans accusé</string>
+    <string name="h_msgRetries">Toutes les 30 s</string>
+    <string name="f_remoteEnabled">Commande par radio</string>
+    <string name="f_managers">Opérateurs autorisés</string>
+    <string name="h_managers">Indicatifs séparés par des espaces</string>
+    <string name="f_queriesEnabled">Répondre aux requêtes APRS (?APRS?)</string>
+    <string name="f_tncProtocol">Modem TNC (USB)</string>
+    <string name="o_tnc2">TNC2 texte</string>
+    <string name="f_bleEnabled">Bluetooth activé</string>
+    <string name="h_bleEnabled">L\'éteindre coupe la connexion avec cette application</string>
+    <string name="f_blePin">PIN d\'appairage (6 chiffres)</string>
+    <string name="h_blePin">Pris en compte au prochain redémarrage ; il faudra ré-appairer le téléphone</string>
+</resources>
