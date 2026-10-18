@@ -4461,14 +4461,16 @@ void pintaEstaciones() {
       else if (d < 9999.0f * 1000.0f) snprintf(ds, sizeof(ds), "%.0fkm", (double)(d / 1000.0f));
       else snprintf(ds, sizeof(ds), ">9999");   // inalcanzable en LoRa: no se miente con un numero
       // %-10.9s = 10 de ancho MINIMO y recorte a 9 (el peor caso real con SSID).
-      snprintf(b, sizeof(b), "%-*.*s %*s", kCallCol, kCallCol - 1, hs[i].call, kDatoCol, ds);
+      // ★ 2026-10-18: sin el espacio de mas entre columnas (kCallCol ya trae el suyo): con el
+      //   eran 16 caracteres = 192 px desde x=12, 204 px en 200, y el final ("km") se cortaba.
+      snprintf(b, sizeof(b), "%-*.*s%*s", kCallCol, kCallCol - 1, hs[i].call, kDatoCol, ds);
     } else {
       uint32_t s = (millis() - hs[i].ms) / 1000;
       char a[12];
       if (s < 60)      snprintf(a, sizeof(a), "%lus", (unsigned long)s);
       else if (s<3600) snprintf(a, sizeof(a), "%lum", (unsigned long)(s/60));
       else             snprintf(a, sizeof(a), "%luh", (unsigned long)(s/3600));
-      snprintf(b, sizeof(b), "%-*.*s %*s", kCallCol, kCallCol - 1, hs[i].call, kDatoCol, a);
+      snprintf(b, sizeof(b), "%-*.*s%*s", kCallCol, kCallCol - 1, hs[i].call, kDatoCol, a);
     }
     drawText(12, y, b, 2); y += 20;
   }
@@ -4602,9 +4604,14 @@ int dibujaTextoEnvuelto(int x, int y, const char *s, int maxChars, int maxLineas
 // completo (no solo el remitente, que ya sale en "Ultimos RX"). Ver
 // gMsgLog / msgLogPush mas arriba.
 void pintaMensajes() {
-  char t[24];
-  snprintf(t, sizeof(t), "Messages (%d)", gMsgLogN);
-  pintaCabecera(t);
+  // ★ 2026-10-18: el contador va en letra pequena detras del titulo. "Messages (2)" entero en
+  //   letra grande llegaba hasta x=160 y la pastilla RX empieza en 152: se pisaban.
+  pintaCabecera("Messages");
+  if (gMsgLogN > 0) {
+    char t[8];
+    snprintf(t, sizeof(t), "(%d)", gMsgLogN);
+    drawText(16 + textWidth("Messages", 2) + 6, 14, t, 1);
+  }
   if (gMsgLogN == 0) { drawTextCenter(90, "No messages", 2); return; }
   int y = 30;
   // Como el cuerpo puede ser largo se listan como mucho 3: el resto no cabe

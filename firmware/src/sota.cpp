@@ -435,9 +435,10 @@ const char *sotaWizardMessage(char *out, size_t outLen) {
   // orden preferido: <Ass/Ref> <Freq> <Mode> [callsign] [comment]. El
   // comentario solo puede ir DETRAS del indicativo, que aqui va siempre.
   const bool conComent = gCommentOpt >= 1 && gCommentOpt <= kSotaCommentCount;
-  snprintf(out, outLen, "%s %d%d%d.%d%d%dMHz %s %s%s%s",
+  // ★ 2026-10-18: sin ceros a la izquierda ("14.062MHz", no "014.062MHz"), como la app.
+  snprintf(out, outLen, "%s %d.%d%d%dMHz %s %s%s%s",
            ref,
-           gFreqDigit[0], gFreqDigit[1], gFreqDigit[2],
+           gFreqDigit[0] * 100 + gFreqDigit[1] * 10 + gFreqDigit[2],
            gFreqDigit[3], gFreqDigit[4], gFreqDigit[5],
            mode, call,
            conComent ? " " : "", conComent ? kSotaComments[gCommentOpt - 1] : "");
@@ -483,7 +484,8 @@ bool sotaPlanParse(const char *planCsv, const char *nodeCall, SotaPlan *out) {
   if (!out || !parsePlan(planCsv, a, r, d, pfx, f, mode)) return false;
   snprintf(out->ref, sizeof(out->ref), "%s/%s-%d%d%d",
            sotaAssocCode(a), sotaRegionCode(a, r), d[0], d[1], d[2]);
-  snprintf(out->freq, sizeof(out->freq), "%d%d%d.%d%d%d", f[0], f[1], f[2], f[3], f[4], f[5]);
+  // Sin ceros a la izquierda: "14.062", no "014.062" (escena SOTA).
+  snprintf(out->freq, sizeof(out->freq), "%d.%d%d%d", f[0] * 100 + f[1] * 10 + f[2], f[3], f[4], f[5]);
   snprintf(out->mode, sizeof(out->mode), "%s", kSotaModes[mode]);
   char base[20];
   baseCallOf(nodeCall, base, sizeof(base));

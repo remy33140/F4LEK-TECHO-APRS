@@ -85,12 +85,15 @@ need is in [`bootloader/`](bootloader/). Source and full guide:
 ### 1.2 Flash the firmware
 
 Double-press reset and copy
-[`firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b110_T-Echo_S140v7.uf2`](firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b110_T-Echo_S140v7.uf2)
+[`firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b111_T-Echo_S140v7.uf2`](firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b111_T-Echo_S140v7.uf2)
 onto `TECHOBOOT` (or your own build, see [1.5](#15-build-your-own)).
 
 ### 1.3 Turn Bluetooth on
 
 On the T-Echo: **long press** → menu → **Bluetooth** → set **Bluetooth** to **ON**.
+
+<img src="docs/tutorial/screens/60_menu_main_bluetooth.png" width="190" alt="Main menu, Bluetooth"> <img src="docs/tutorial/screens/61_menu_bluetooth.png" width="190" alt="Bluetooth on">
+
 It starts right away, no reboot needed. In the same section, **PIN BT** is the pairing PIN
 (6 digits, `123456` by default). Change it if you like: the new PIN applies at the next reboot,
 and the phone then has to pair again.
@@ -202,7 +205,8 @@ Values are checked against the firmware's limits before saving; only what change
 
 ## 🗻 3. On the T-Echo, without a phone
 
-Everything SOTA can also be done from the device's own menus.
+Everything SOTA can also be done from the device's own menus. The screens below are the
+firmware's own drawing code, rendered on a PC by [`firmware/tools/epd_sim`](firmware/tools/epd_sim).
 
 ### Buttons
 
@@ -227,72 +231,42 @@ If your callsign already has a `/`, it is used as it is.
 
 ### Reach the SOTA menu
 
-```
- On any screen                Main menu                    SOTA section
- ─────────────                ─────────                    ────────────
-                              ▸ Exit                       ▸ < Back
-   LONG press  ────────▶        Sleep                        Exit
-                                SOTA          ─────────▶     Plan activation
-                                Messages                     SOTA spot
-                                …
-```
+**Long press** opens the main menu on `Exit`. **Touch twice** → `SOTA`, **short press** to enter.
+Then **touch twice** → `Plan activation` (or three times → `SOTA spot`), **short press** to start.
 
-1. **Long press** → the main menu opens with the cursor on `Exit`.
-2. **Touch twice** → cursor on `SOTA`. **Short press** to enter.
-3. **Touch twice** → `Plan activation`, or **three times** → `SOTA spot`. **Short press** to start.
+<img src="docs/tutorial/screens/10_menu_main.png" width="190" alt="Main menu"> <img src="docs/tutorial/screens/11_menu_main_sota.png" width="190" alt="SOTA selected"> <img src="docs/tutorial/screens/12_menu_sota.png" width="190" alt="SOTA section"> <img src="docs/tutorial/screens/13_menu_sota_plan.png" width="190" alt="Plan activation">
 
 ### Plan the activation
 
-Each step shows its title at the top of the screen. **Touch** moves the cursor, **short press**
-validates and goes to the next step, **long press** goes back to the previous step with your
-previous choice still selected, so you can fix one value without starting over.
+Each step shows its title at the top. **Touch** moves the cursor, **short press** validates and goes
+to the next step, **long press** goes back one step with your previous choice still selected.
 
-```mermaid
-flowchart LR
-    A["Association<br/><i>F</i>"] --> R["Region<br/><i>PE</i>"]
-    R --> D["Digit 1/3 · 2/3 · 3/3<br/><i>1 · 0 · 3</i>"]
-    D --> S["Confirm summit<br/><b>F/PE-103</b>"]
-    S --> F["Frequency, 6 digits<br/><i>1 4 5 . 5 0 0</i>"]
-    F --> M["Mode<br/><i>SSB</i>"]
-    M --> P["Call prefix<br/><i>(none)</i>"]
-    P --> C{{"SAVE PLAN?"}}
-    A -. "Re F/PE-103" .-> F
-```
-
-The association list puts shortcuts at the top: **`Re F/PE-103`** reuses your last summit and call
+The association list puts shortcuts at the top: **`Re F/PO-001`** reuses your last summit and call
 prefix and jumps straight to the frequency (handy for a second band or a QSY), then your recent
-associations marked `*`, then the full list. The saved plan stays in flash across reboots.
+associations marked `*`, then the full list.
+
+<img src="docs/tutorial/screens/21_plan_assoc_f.png" width="190" alt="Association"> <img src="docs/tutorial/screens/22_plan_region.png" width="190" alt="Region"> <img src="docs/tutorial/screens/24_plan_digit3.png" width="190" alt="Summit digits"> <img src="docs/tutorial/screens/25_plan_recap.png" width="190" alt="Summit recap">
+
+The frequency is entered digit by digit (`014.062` for 14.062 MHz), then the mode and, when you
+activate abroad, a call prefix (`(none)` at home). **SAVE PLAN?** shows what will be stored.
+
+<img src="docs/tutorial/screens/26_plan_freq.png" width="190" alt="Frequency"> <img src="docs/tutorial/screens/27_plan_mode.png" width="190" alt="Mode"> <img src="docs/tutorial/screens/28_plan_prefix.png" width="190" alt="Call prefix"> <img src="docs/tutorial/screens/29_plan_confirm.png" width="190" alt="Save plan">
+
+The saved plan stays in flash across reboots and shows on the **SOTA screen** of the carousel.
 
 ### Spot from the summit
 
-1. Open `SOTA spot`.
-2. `Comment`: pick one (QRV, QSY, QRT, TEST or none).
-3. `SEND SPOT?` shows the exact message. **Short press** sends it, **long press** goes back.
+Open `SOTA spot`, pick a comment (QRV, QSY, QRT, TEST or none), check the message on
+**SEND SPOT?** and **short press** to send it to **`APRS2SOTA`**.
 
-The spot is an APRS message to **`APRS2SOTA`**:
-
-```
-F/PE-103 145.500MHz SSB F4LEK/P QRV
-```
-
-If you open `SOTA spot` without a plan, the device shows `SOTA: no plan`. Plan first.
+<img src="docs/tutorial/screens/40_menu_sota_spot.png" width="190" alt="SOTA spot"> <img src="docs/tutorial/screens/42_spot_comment_qrv.png" width="190" alt="Comment"> <img src="docs/tutorial/screens/43_spot_confirm.png" width="190" alt="Send spot"> <img src="docs/tutorial/screens/44_sota_sending.png" width="190" alt="Sending">
 
 ### The SOTA screen
 
-Short press or touch through the carousel until the **SOTA** screen:
+Touch through the carousel until the **SOTA** screen: your callsign, the summit, frequency and mode,
+the answer of APRS2SOTA and the UTC time for your log.
 
-```
- ┌──────────── SOTA ────────────┐
- │         F4LEK/P              │   callsign used for the spot
- │       on F/PE-103            │   summit
- │      145.500 SSB             │   frequency + mode
- │ ──────────────────────────── │
- │        APRS status:          │
- │          Spotted             │   ◀ answer from APRS2SOTA
- │ ──────────────────────────── │
- │         10:42 UTC            │   UTC time for your log
- └──────────────────────────────┘
-```
+<img src="docs/tutorial/screens/30_sota_planned.png" width="190" alt="Plan, no spot yet"> <img src="docs/tutorial/screens/44_sota_sending.png" width="190" alt="Sending"> <img src="docs/tutorial/screens/45_sota_spotted.png" width="190" alt="Spotted">
 
 | Status | Meaning | What to do |
 |---|---|---|
@@ -303,8 +277,15 @@ Short press or touch through the carousel until the **SOTA** screen:
 | ❌ `Error` | the gateway refused it (e.g. unknown mode or summit) | check the plan and send again |
 | 📵 `Not sent` | radio error, or no acknowledgement after all retries | no iGate in range: move, or try again later |
 
-The full answer from APRS2SOTA is also on the **Messages** screen. The status is kept in RAM only
-and resets to `--` after a reboot.
+The status follows spots sent from the menu **and** from the app. It is kept in RAM only and resets
+to `--` after a reboot.
+
+### The carousel
+
+Home (position, speed, altitude, satellites), SOTA, Messages (APRS2SOTA's answers land here too),
+heard stations with their distance, last frames received and sent.
+
+<img src="docs/tutorial/screens/50_home.png" width="190" alt="Home"> <img src="docs/tutorial/screens/51_messages.png" width="190" alt="Messages"> <img src="docs/tutorial/screens/52_stations.png" width="190" alt="Stations"> <img src="docs/tutorial/screens/54_last_tx.png" width="190" alt="Last TX">
 
 ### Other functions
 
