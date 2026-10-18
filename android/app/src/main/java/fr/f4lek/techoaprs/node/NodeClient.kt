@@ -128,6 +128,9 @@ class NodeClient(private val link: TechoLink, scope: CoroutineScope) {
         mutex.withLock { link.sendLine(line) }
     }
 
+    /** Demo build only (screenshots): a line as if the node had sent it. */
+    internal fun demoLine(line: String) = onLine(line)
+
     fun forget() {
         _config.value = null
         _status.value = null

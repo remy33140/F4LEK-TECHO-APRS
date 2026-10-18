@@ -333,7 +333,9 @@ fun SotaScreen(onConnect: () -> Unit) {
 
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(vm.listInfo, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                Text(
+                    L.s(R.string.sota_list_info, vm.listCount) + (vm.listDate?.let { L.s(R.string.sota_list_date, it) } ?: ""),
+                    style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                 TextButton(onClick = { vm.refreshList(say) }, enabled = vm.loading == null) { Text(L.s(R.string.sota_update_list)) }
             }
         }

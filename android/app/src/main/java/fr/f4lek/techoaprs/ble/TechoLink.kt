@@ -325,6 +325,11 @@ class TechoLink(private val ctx: Context) {
         }
     }
 
+    /** Demo build only (screenshots): pretends a T-Echo is connected. */
+    internal fun demoReady(name: String) = handler.post {
+        _state.value = LinkState.Ready(name, true, 247, listOf(TechoUuids.KISS_SVC.toString(), TechoUuids.CFG_SVC.toString()))
+    }
+
     /** BluetoothGatt.refresh() is hidden API, but it is the only way to drop a stale cache. */
     private fun refreshCache(g: BluetoothGatt): Boolean = runCatching {
         g.javaClass.getMethod("refresh").invoke(g) as Boolean

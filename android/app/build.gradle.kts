@@ -17,6 +17,12 @@ android {
     }
 
     buildTypes {
+        // Screenshot build: a fake connected T-Echo with sample data (src/demo). Never published.
+        create("demo") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".demo"
+            matchingFallbacks += "debug"
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
