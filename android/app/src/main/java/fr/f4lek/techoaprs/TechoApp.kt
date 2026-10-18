@@ -10,6 +10,10 @@ class TechoApp : Application() {
         super.onCreate()
         L.init(this)
         techo = Techo(this)
+        // Sample data for screenshots: the class only exists in the "demo" build type.
+        runCatching {
+            Class.forName("fr.f4lek.techoaprs.DemoData").getMethod("install", Techo::class.java).invoke(null, techo)
+        }
     }
 
     /** Called by the language setting: new strings everywhere, then the activity is recreated. */

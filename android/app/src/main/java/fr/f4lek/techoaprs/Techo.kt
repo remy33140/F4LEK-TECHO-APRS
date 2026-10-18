@@ -109,6 +109,11 @@ class Techo(val ctx: Context) {
         }
     }
 
+    /** Demo build only (screenshots): a frame as if the node's radio had heard it. */
+    internal fun demoFrame(tnc2: String) {
+        TextFrame.parse(tnc2)?.let(Ax25::encode)?.let(::onFrame)
+    }
+
     // ---------------------------------------------------------------- TX
     /**
      * Sends an APRS message. With the configuration channel the node numbers it, repeats it until

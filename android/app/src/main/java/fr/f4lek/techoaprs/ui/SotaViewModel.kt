@@ -38,7 +38,10 @@ class SotaViewModel(private val techo: Techo) : ViewModel() {
 
     var loading by mutableStateOf<String?>(L.s(R.string.sota_loading))
         private set
-    var listInfo by mutableStateOf("")
+    // Kept as data and formatted by the screen: this view model outlives a language change.
+    var listCount by mutableStateOf(0)
+        private set
+    var listDate by mutableStateOf<String?>(null)
         private set
 
     // ------------------------------------------------ summit choice
@@ -113,7 +116,8 @@ class SotaViewModel(private val techo: Techo) : ViewModel() {
         withContext(Dispatchers.Main) {
             assocs = a
             recents = rec
-            listInfo = L.s(R.string.sota_list_info, n) + (date?.let { L.s(R.string.sota_list_date, it) } ?: "")
+            listCount = n
+            listDate = date
         }
     }
 

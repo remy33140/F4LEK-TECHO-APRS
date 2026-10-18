@@ -1,5 +1,6 @@
 package fr.f4lek.techoaprs.ui
 
+import androidx.compose.material3.ProvideTextStyle
 import fr.f4lek.techoaprs.TechoApp
 import androidx.compose.ui.platform.LocalContext
 import android.app.Activity
@@ -404,7 +405,11 @@ private fun FieldEditor(f: Field, cfg: JSONObject, vm: ConfigViewModel, errors: 
                 onPick = { vm.edits[f.key] = it.first },
                 modifier = Modifier.fillMaxWidth(),
             )
-            supporting?.let { Row(Modifier.padding(start = 16.dp)) { it() } }
+            supporting?.let {
+                Row(Modifier.padding(start = 16.dp, top = 4.dp)) {
+                    ProvideTextStyle(MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)) { it() }
+                }
+            }
         }
         is Field.Position -> {
             Text(L.s(f.label), style = MaterialTheme.typography.labelLarge)
