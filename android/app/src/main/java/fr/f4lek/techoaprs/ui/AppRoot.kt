@@ -1,5 +1,28 @@
 package fr.f4lek.techoaprs.ui
 
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.Alignment
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material.icons.filled.BluetoothDisabled
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.RepeatMode
 import fr.f4lek.techoaprs.R
 import fr.f4lek.techoaprs.L
 import androidx.compose.foundation.layout.padding
@@ -11,8 +34,6 @@ import androidx.compose.material.icons.filled.BluetoothConnected
 import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.Landscape
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,7 +58,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
@@ -86,13 +106,15 @@ fun AppRoot(techo: Techo, openPeer: MutableStateFlow<String?>) {
             topBar = {
                 TopAppBar(
                     title = {
-                        Text(
-                            when {
-                                route.startsWith("chat/") -> backStack?.arguments?.getString("peer") ?: ""
-                                route == "convs" -> L.s(R.string.tab_messages)
-                                route == "config" -> L.s(R.string.title_settings)
-                                else -> L.s(R.string.title_sota)
-                            }
+                        if (route.startsWith("chat/")) Text(backStack?.arguments?.getString("peer") ?: "")
+                        else BrandTitle(
+                            L.s(
+                                when (route) {
+                                    "convs" -> R.string.tab_messages
+                                    "config" -> R.string.tab_settings
+                                    else -> R.string.title_sota
+                                }
+                            )
                         )
                     },
                     navigationIcon = {
@@ -100,7 +122,7 @@ fun AppRoot(techo: Techo, openPeer: MutableStateFlow<String?>) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, L.s(R.string.back))
                         }
                     },
-                    actions = { LinkChip(linkState) { showConnect = true } },
+                    actions = { LinkButton(linkState) { showConnect = true } },
                 )
             },
             bottomBar = {
@@ -138,22 +160,58 @@ fun AppRoot(techo: Techo, openPeer: MutableStateFlow<String?>) {
     }
 }
 
+/** The app logo (the launcher icon's summit and waves on its green disc), the section name and the app line. */
 @Composable
-private fun LinkChip(state: LinkState, onClick: () -> Unit) {
-    val (label, icon) = when (state) {
-        is LinkState.Ready -> state.name to Icons.Filled.BluetoothConnected
+private fun BrandTitle(title: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier.size(40.dp).clip(CircleShape).background(colorResource(R.color.ic_bg)),
+            contentAlignment = Alignment.Center,
+        ) {
+            // The adaptive-icon foreground keeps its art in the middle 2/3: scale it up to fill.
+            Image(painterResource(R.drawable.ic_launcher_fg), null, Modifier.size(60.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            Text(
+                L.s(R.string.app_byline),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** Bluetooth state as a bare icon; tap to connect or see the link. */
+@Composable
+private fun LinkButton(state: LinkState, onClick: () -> Unit) {
+    val (desc, icon) = when (state) {
+        is LinkState.Ready -> L.s(R.string.cs_connected_to, state.name) to Icons.Filled.BluetoothConnected
         is LinkState.Connecting -> L.s(R.string.chip_connecting) to Icons.Filled.BluetoothSearching
         is LinkState.Scanning -> L.s(R.string.chip_scanning) to Icons.Filled.BluetoothSearching
-        is LinkState.Failed -> L.s(R.string.error) to Icons.Filled.Bluetooth
+        is LinkState.Failed -> L.s(R.string.error) to Icons.Filled.BluetoothDisabled
         LinkState.Idle -> L.s(R.string.connect) to Icons.Filled.Bluetooth
     }
-    AssistChip(
+    // Searching / connecting: the icon breathes.
+    val busy = state is LinkState.Connecting || state is LinkState.Scanning
+    val alpha = if (busy) {
+        rememberInfiniteTransition(label = "bt").animateFloat(
+            initialValue = 1f, targetValue = 0.3f,
+            animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "bt",
+        ).value
+    } else 1f
+    val ready = state is LinkState.Ready
+    FilledTonalIconButton(
         onClick = onClick,
-        label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        leadingIcon = { Icon(icon, null, Modifier) },
-        colors = if (state is LinkState.Ready) AssistChipDefaults.assistChipColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ) else AssistChipDefaults.assistChipColors(),
+        colors = if (ready) IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.primary,
+        ) else IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = if (state is LinkState.Failed) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
         modifier = Modifier.padding(end = 8.dp),
-    )
+    ) { Icon(icon, desc, Modifier.alpha(alpha)) }
 }

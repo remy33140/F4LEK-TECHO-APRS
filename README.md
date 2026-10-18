@@ -129,8 +129,9 @@ The app builds with Gradle (JDK 17 + Android SDK 35), see [`android/README.md`](
 
 ## 📱 2. The Android app
 
-Three tabs: **SOTA**, **Messages**, **Settings**. The chip at the top right shows the Bluetooth
-link; tap it to connect or disconnect.
+Three tabs: **SOTA**, **Messages**, **Settings**. The Bluetooth icon at the top right shows the
+link (tinted when the T-Echo is connected, blinking while it connects); tap it to connect or
+disconnect.
 
 ### 2.1 SOTA spot
 

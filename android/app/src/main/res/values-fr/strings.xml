@@ -20,7 +20,6 @@
     <string name="tab_messages">Messages</string>
     <string name="tab_settings">Réglages</string>
     <string name="title_sota">Spot SOTA</string>
-    <string name="title_settings">Réglages du T-Echo</string>
     <string name="chip_connecting">Connexion…</string>
     <string name="chip_scanning">Recherche…</string>
 

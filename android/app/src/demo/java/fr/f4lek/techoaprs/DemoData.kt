@@ -56,7 +56,7 @@ object DemoData {
 {"ssid":7,"slowSec":0,"fastSec":0,"distM":0,"symbol":"/["},{"ssid":8,"slowSec":0,"fastSec":0,"distM":0,"symbol":"/b"},
 {"ssid":5,"slowSec":0,"fastSec":0,"distM":0,"symbol":"/>"}],"queriesEnabled":false}"""
 
-    private const val STATUS = """{"version":"1.0alpha","build":"b109","board":"T-Echo","uptimeMs":5400000,
+    private const val STATUS = """{"version":"1.0alpha","build":"b110","board":"T-Echo","uptimeMs":5400000,
 "radio":{"module":"SX1262","state":"RX","powerDbm":22,"err":0,"rxCount":142,"txCount":23,"digiCount":0,
 "lastRssi":-97.5,"lastSnr":6.25,"rxlog":false},"sensors":{"wx":true,"tempC":8.4,"hum":61,"hPa":702.3,
 "vbatDivV":3.98,"ina":false},"display":true,
