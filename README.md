@@ -85,7 +85,7 @@ need is in [`bootloader/`](bootloader/). Source and full guide:
 ### 1.2 Flash the firmware
 
 Double-press reset and copy
-[`firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b111_T-Echo_S140v7.uf2`](firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b111_T-Echo_S140v7.uf2)
+[`firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b112_T-Echo_S140v7.uf2`](firmware/release/F4LEK-TECHO-APRS_v1.0alpha_b112_T-Echo_S140v7.uf2)
 onto `TECHOBOOT` (or your own build, see [1.5](#15-build-your-own)).
 
 ### 1.3 Turn Bluetooth on

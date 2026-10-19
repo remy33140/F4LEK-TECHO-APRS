@@ -147,6 +147,9 @@ int main(int argc, char **argv) {
   scene(3, "52_stations");
   scene(4, "53_last_rx");
   scene(5, "54_last_tx");
+  gWorld.usb = true;
+  scene(0, "55_home_usb");
+  gWorld.usb = false;
 
   // --- 5. Bluetooth -----------------------------------------------------------------------
   menuOpen(); touch(12);      shot("60_menu_main_bluetooth");

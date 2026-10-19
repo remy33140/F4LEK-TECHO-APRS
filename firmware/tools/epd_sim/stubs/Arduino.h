@@ -26,7 +26,11 @@ inline void yield() {}
 inline void pinMode(int, int) {}
 inline void digitalWrite(int, int) {}
 inline int digitalRead(int) { return 0; }
-inline int analogRead(int) { return 0; }
+int analogRead(int pin);   // sim_stubs.cpp: the battery voltage of the scenario, as the ADC sees it
+#define AR_INTERNAL_3_0 0
+inline void analogReference(int) {}
+inline void analogReadResolution(int) {}
+inline void analogSampleTime(int) {}
 inline void tone(int, unsigned, unsigned long = 0) {}
 inline void noTone(int) {}
 template <class T> T constrain(T v, T a, T b) { return v < a ? a : (v > b ? b : v); }

@@ -127,6 +127,7 @@ val CONFIG_SCHEMA = listOf(
         R.string.s_power, listOf(
             Field.IntF("sleepCutMv", R.string.f_sleepCutMv, 2500, 4200),
             Field.IntF("sleepWakeMv", R.string.f_sleepWakeMv, 2600, 4500),
+            Field.FloatF("batteryCal", R.string.f_batteryCal, 0.8, 1.2, R.string.h_batteryCal),
         )
     ),
     SectionDef(

@@ -3,6 +3,8 @@
 
 #include "protocol.h"
 
+#include "battery.h"
+
 #include <ArduinoJson.h>
 #include <RadioLib.h>
 #include <nrf.h>  // NVIC_SystemReset() del reinicio suave (igual que cli.cpp)
@@ -390,6 +392,9 @@ void ConfigProtocol::replyStatus() {
   sensors["hPa"] = gSensorCache.pressHpa;
   sensors["vbatDivV"] = gSensorCache.vbatDivV;
   sensors["inaBusV"] = gSensorCache.inaBusV;
+  // ★ 2026-10-18: el mismo % que la pantalla (curva LiPo, 0 % en el corte) y si hay USB.
+  sensors["batPct"] = batteryPercent();
+  sensors["usb"] = batteryOnUsb();
   sensors["inaMa"] = gSensorCache.inaCurrentMa;
   doc["status"]["display"] = displayPresent();
   doc["status"]["diag"] = diagStreaming();

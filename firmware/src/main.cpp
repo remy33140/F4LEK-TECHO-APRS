@@ -11,6 +11,7 @@
 
 #include "aprs.h"
 #include "ble_kiss.h"
+#include "battery.h"
 #include "button.h"
 #include "config.h"
 #include "diag.h"
@@ -290,6 +291,7 @@ void setup() {
   const bool hayConfig = storeLoad(gConfig);
   aprsBindConfig(&gConfig);
   tncBindConfig(&gConfig);
+  batteryBindConfig(&gConfig);   // factor de correccion y corte: antes de powerBootCheck()
   diagBindConfig(&gConfig);
   displayBindConfig(&gConfig);
   bleBindConfig(&gConfig);

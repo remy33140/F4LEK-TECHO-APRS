@@ -326,4 +326,8 @@
     <string name="web_need_call">Set your callsign in Settings to connect</string>
     <string name="web_note">A message reaches the T-Echo only if an iGate near it transmits it over the radio. Without ✓✓, there is no proof it arrived.</string>
     <string name="err_web_not_connected">Not connected to APRS-IS</string>
+    <string name="f_batteryCal">Battery voltage correction</string>
+    <string name="h_batteryCal">Voltage measured with a multimeter ÷ voltage shown by the T-Echo (1.00 = none)</string>
+    <string name="cfg_battery_pct">Battery: %1$.2f V · %2$d %%</string>
+    <string name="cfg_battery_usb">Battery: %1$.2f V · on USB</string>
 </resources>

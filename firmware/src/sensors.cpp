@@ -4,6 +4,8 @@
 
 #include "sensors.h"
 
+#include "battery.h"
+
 #include <Arduino.h>
 #include "diag.h"     // diagTrazaArranque(): el saludo del arranque no se cuela en modo TNC
 #include <Adafruit_AHTX0.h>
@@ -307,11 +309,10 @@ void sensorsRead(SensorReadings &r) {
 #ifndef BATTERY_ADC_PIN
 #define BATTERY_ADC_PIN 4        // P0.04 = AIN2 (T-Echo / T-Echo Plus)
 #endif
-  // 10-bit, internal ref gain 1/5 -> 0..3.0 V, divider factor 2.0 (N-01)
-  analogReference(AR_INTERNAL_3_0);
-  uint32_t sum = 0;
-  for (int i = 0; i < 8; i++) sum += analogRead(BATTERY_ADC_PIN);
-  r.vbatDivV = (float)(sum / 8) / 1023.0f * 3.0f * 2.0f;
+  // ★ 2026-10-18: la lectura es la de battery.cpp (40 us, 12 bits, corregida y suavizada), la
+  //   misma que usan la pantalla y el sueño por bateria baja.
+  (void)BATTERY_ADC_PIN;
+  r.vbatDivV = batteryMv() / 1000.0f;
 
   if (gHasIna && gIna) {
     r.inaBusV = gIna->getBusVoltage_V();

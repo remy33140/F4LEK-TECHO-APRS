@@ -6,6 +6,8 @@
 
 #include "power.h"
 
+#include "battery.h"
+
 #include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -220,12 +222,11 @@ bool powerUsbPresent() {
 #define POWER_BATTERY_ADC_PIN 4
 
 uint16_t powerReadMv() {
-  uint32_t sum = 0;
-  // Pin del ADC del T-Echo (ver la nota de arriba): P0.04 (AIN2). Se lee 8 veces y se promedia: el divisor es de 2x1M y con radiofrecuencia
-  // cerca una sola lectura puede salir falsa.
-  for (int i = 0; i < 8; i++) sum += analogRead(POWER_BATTERY_ADC_PIN);  // 10-bit, 0..3.0 V
-  // raw/1023 * 3000 mV * 2.0 (divisor 1/2 en las tres placas)
-  float raw = (float)(sum / 8) / 1023.0f * 3000.0f * BATTERY_DIVIDER;
+  // ★ 2026-10-18: la lectura (pin, 40 us, 12 bits, factor de correccion) vive en battery.cpp,
+  //   la misma para el sueño, la pantalla y la telemetria. Aqui se pide una NUEVA cada vez: el
+  //   sueño cuenta 8 lecturas bajas seguidas y no puede contar 8 veces la misma.
+  const float raw = (float)batteryReadNowMv();
+  if (raw <= 0.0f) return 0;
   // Light IIR (alpha 0.5, NavaTastic style) so a TX sag cannot fake a low
   // reading; telemetry still reports the raw value from the sensors cache.
   static float ema = 0.0f;

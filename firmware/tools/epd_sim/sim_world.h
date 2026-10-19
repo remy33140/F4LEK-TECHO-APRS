@@ -8,5 +8,6 @@ struct SimWorld {
   HeardStation heard[8];
   uint8_t nHeard = 0;
   uint32_t lastTxMs = 0;
+  bool usb = false;
 };
 extern SimWorld gWorld;

@@ -161,6 +161,10 @@ struct DigiConfig {
   // Offset applied to the nRF52 internal (chip) sensor: it measures the die, not
   // the air, so it needs a negative correction once measured on the bench.
   float chipTempOffsetC = -3.0f;       // -10..10
+  // Factor de correccion de la tension de bateria (2026-10-18): tension medida con un multimetro
+  // dividida por la que enseña el nodo. Compensa la tolerancia del divisor y de la referencia
+  // del ADC. 1.0 = sin correccion; 0.8..1.2 (fuera de eso es un error de medida, no del nodo).
+  float batteryCal = 1.0f;
 
   // power / resilience (N-03): battery cut & LPCOMP wake (mV, ADC P0.04)
   // LilyGO T-Echo / T-Echo Plus: celda de litio de 1S (3,7 V). En una LiPo,

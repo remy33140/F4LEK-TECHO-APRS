@@ -86,6 +86,7 @@
 #include "power.h"
 #include "radio.h"
 #include "aprs.h"
+#include "battery.h"
 #include "sota.h"
 #include "cli.h"
 #include "diag.h"       // diagTrazaTaller() / diagTrazaArranque(): las trazas del USB
@@ -3969,14 +3970,11 @@ void rectVacio(int x0, int y0, int x1, int y1) {
 }
 
 // Porcentaje de bateria para la barrita (0..100; 0 si no hay lectura creible).
-// Misma regla que la OLED (display.cpp, drawBatteryFooter): 3,0..4,2 V -> 0..100 %.
+// ★ 2026-10-18: ya no es la recta 3,0..4,2 V de la OLED, sino la curva de una LiPo con el 0 %
+//   en el corte (sleepCutMv): ver battery.h.
 int bateriaPct() {
-  const float bv = sensorsBatteryVolt(gSens);
-  if (bv <= 0.0f) return 0;
-  int p = (int)((bv - 3.0f) / 1.2f * 100.0f);
-  if (p < 0) p = 0;
-  if (p > 100) p = 100;
-  return p;
+  const int p = batteryPercent();
+  return p < 0 ? 0 : p;
 }
 
 // ---------------------------------------------------------------------------
@@ -4120,10 +4118,14 @@ void pintaPie() {
   // segun el nivel (se ve con poca y con mucha carga). El polo positivo es un borne
   // compacto a la derecha. Nada se pinta encima de otra cosa.
   {
-    const int p = bateriaPct();
+    // Con el USB enchufado la tension no dice la carga (sube hacia 4,2 V mientras carga):
+    // "USB" y el cuerpo vacio en vez de un 100 % falso.
+    const bool usb = batteryOnUsb();
+    const int p = usb ? 0 : bateriaPct();
     char bb[8];
-    if (bateriaMv() > 0) snprintf(bb, sizeof(bb), "%d%%", p);
-    else                 snprintf(bb, sizeof(bb), "--");
+    if (usb)                  snprintf(bb, sizeof(bb), "USB");
+    else if (bateriaMv() > 0) snprintf(bb, sizeof(bb), "%d%%", p);
+    else                      snprintf(bb, sizeof(bb), "--");
 
     // cuerpo de la bateria, anclado a la derecha; el borne positivo sobresale a la derecha
     const int by = 186, bh = 14;
@@ -4896,10 +4898,12 @@ uint64_t huellaContenido() {
   //   quitaron la escena Sensores y la linea de meteorologia del inicio no se ven en
   //   ninguna escena, y meterlos solo provocaria repintados sin cambio visible.
 
-  // La MISMA lectura redondeada que se dibuja (ver `bateriaMv()`): el ruido del ADC de esta
-  // unidad no puede entrar aqui o la huella cambiaria sola y se repintaria sin parar.
-  const uint16_t mv = bateriaMv();
-  huellaAnade(h, &mv, sizeof(mv));
+  // ★ 2026-10-18: lo que SE DIBUJA de la bateria (el %, con histeresis, y el "USB"), no los
+  //   milivoltios: unos mV de ruido ya no repintan la tinta.
+  const int pctPie = bateriaPct();
+  const bool usbPie = batteryOnUsb();
+  huellaAnade(h, &pctPie, sizeof(pctPie));
+  huellaAnade(h, &usbPie, sizeof(usbPie));
   huellaAnade(h, &gRx, sizeof(gRx));
   huellaAnade(h, &gTx, sizeof(gTx));
   huellaAnade(h, &gDg, sizeof(gDg));

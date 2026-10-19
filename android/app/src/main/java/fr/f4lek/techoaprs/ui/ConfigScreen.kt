@@ -403,7 +403,16 @@ private fun StatusCard(st: JSONObject?, onRefresh: () -> Unit) {
             val radio = st.optJSONObject("radio")
             val vbat = sens?.optDouble("inaBusV")?.takeIf { it in 2.0..5.0 } ?: sens?.optDouble("vbatDivV")
             Text("${st.optString("version")} ${st.optString("build")} · ${st.optString("board")}", style = MaterialTheme.typography.bodySmall)
-            vbat?.takeIf { !it.isNaN() }?.let { Text(L.s(R.string.cfg_battery, it)) }
+            vbat?.takeIf { !it.isNaN() }?.let { v ->
+                val pct = sens?.optInt("batPct", -1) ?: -1
+                Text(
+                    when {
+                        sens?.optBoolean("usb") == true -> L.s(R.string.cfg_battery_usb, v)
+                        pct >= 0 -> L.s(R.string.cfg_battery_pct, v, pct)
+                        else -> L.s(R.string.cfg_battery, v)
+                    }
+                )
+            }
             if (gps != null) Text(
                 if (gps.optBoolean("fix")) L.s(
                     R.string.cfg_gps_fix,

@@ -330,6 +330,8 @@ bool configFromJson(DigiConfig &cfg, JsonVariantConst in, String &errMsg) {
   bool hasTempCorr = in["temperatureCorrection"].is<float>() ||
                      in["temperatureCorrection"].is<int>() ||
                      in["temperatureCorrection"].is<long>();
+  bool hasBatCal = in["batteryCal"].is<float>() || in["batteryCal"].is<int>() ||
+                   in["batteryCal"].is<long>();
   bool hasChipOff = in["chipTempOffset"].is<float>() ||
                     in["chipTempOffset"].is<int>() ||
                     in["chipTempOffset"].is<long>();
@@ -346,6 +348,7 @@ bool configFromJson(DigiConfig &cfg, JsonVariantConst in, String &errMsg) {
   ignoraSiNoEsEntero(in["power"], "power");
   ignoraSiNoEsEntero(in["heightCorrection"], "heightCorrection");
   ignoraSiNoEsNumero(in["chipTempOffset"], "chipTempOffset");
+  ignoraSiNoEsNumero(in["batteryCal"], "batteryCal");
   ignoraSiNoEsNumero(in["temperatureCorrection"], "temperatureCorrection");
   ignoraSiNoEsEntero(in["sleepCutMv"], "sleepCutMv");
   ignoraSiNoEsEntero(in["sleepWakeMv"], "sleepWakeMv");
@@ -416,6 +419,11 @@ bool configFromJson(DigiConfig &cfg, JsonVariantConst in, String &errMsg) {
   }
   if (in["heightCorrection"].is<int>()) {
     next.heightCorrectionM = in["heightCorrection"] | next.heightCorrectionM;
+  }
+  if (hasBatCal) {
+    float v = in["batteryCal"].as<float>();
+    if (v < 0.8f || v > 1.2f) { errMsg = "batteryCal 0.8..1.2"; return false; }
+    next.batteryCal = v;
   }
   if (hasChipOff) {
     float v = in["chipTempOffset"].as<float>();
@@ -734,6 +742,7 @@ void configToJson(const DigiConfig &cfg, JsonObject o) {
   o["heightCorrection"] = cfg.heightCorrectionM;
   o["temperatureCorrection"] = cfg.temperatureCorrectionC;
   o["chipTempOffset"] = cfg.chipTempOffsetC;
+  o["batteryCal"] = cfg.batteryCal;
   o["sleepCutMv"] = cfg.sleepCutMv;
   o["sleepWakeMv"] = cfg.sleepWakeMv;
   o["txDisabled"] = cfg.txDisabled;

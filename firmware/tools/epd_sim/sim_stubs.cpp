@@ -35,6 +35,8 @@ float gpsDistanceM(double lat1, double lon1, double lat2, double lon2) {
   return (float)(2 * 6371000.0 * asin(sqrt(a)));
 }
 float sensorsBatteryVolt(const SensorReadings &) { return gWorld.batV; }
+// battery.cpp reads P0.04 in 12 bits behind a 1/2 divider, 3.0 V full scale.
+int analogRead(int) { return (int)(gWorld.batV / 2.0f / 3.0f * 4095.0f + 0.5f); }
 
 uint8_t aprsHeardStations(HeardStation *out, uint8_t max) {
   uint8_t n = 0;
@@ -55,7 +57,7 @@ bool cliTypedSet(DigiConfig &, const String &, const String &, String &) { retur
 bool diagTrazaArranque() { return false; }
 bool diagTrazaTaller() { return false; }
 void powerSleepNow(const DigiConfig &) {}
-bool powerUsbPresent() { return false; }
+bool powerUsbPresent() { return gWorld.usb; }
 uint32_t radioLastTxMs() { return gWorld.lastTxMs; }
 bool radioReady() { return true; }
 void radioSetMuted(bool) {}
