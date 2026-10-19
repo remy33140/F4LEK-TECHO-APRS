@@ -32,7 +32,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             TechoTheme { AppRoot(techo, openPeer) }
         }
-        askPerms.launch(neededPermissions())
+        askPerms.launch(neededPermissions(techo.isWeb))
+        // Web mode: the background service holds the APRS-IS connection. Started here, with the
+        // activity on screen (Android refuses it from the Application at process start).
+        if (techo.isWeb && fr.f4lek.techoaprs.net.AprsIsLink.validCall(techo.webCall)) LinkService.start(this)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -42,6 +45,7 @@ class MainActivity : ComponentActivity() {
 
     private fun autoReconnect() {
         val techo = (application as TechoApp).techo
+        if (techo.isWeb) return
         val last = techo.prefs.getString("lastDevice", null) ?: return
         if (techo.link.state.value is fr.f4lek.techoaprs.ble.LinkState.Idle && techo.link.bluetoothOn) techo.connect(last)
     }
@@ -49,8 +53,11 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_PEER = "peer"
 
-        fun neededPermissions(): Array<String> = buildList {
-            if (Build.VERSION.SDK_INT >= 31) {
+        /** Web mode needs no Bluetooth (nor location on old Androids): only notifications. */
+        fun neededPermissions(web: Boolean): Array<String> = buildList {
+            if (web) {
+                // nothing for Bluetooth
+            } else if (Build.VERSION.SDK_INT >= 31) {
                 add(Manifest.permission.BLUETOOTH_SCAN)
                 add(Manifest.permission.BLUETOOTH_CONNECT)
             } else {

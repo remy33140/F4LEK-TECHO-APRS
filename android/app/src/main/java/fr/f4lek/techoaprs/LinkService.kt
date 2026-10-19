@@ -1,5 +1,6 @@
 package fr.f4lek.techoaprs
 
+import fr.f4lek.techoaprs.net.IsState
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
@@ -21,12 +22,20 @@ class LinkService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val techo = (application as TechoApp).techo
-        ServiceCompat.startForeground(
-            this, NOTIF_ID, build(L.s(R.string.svc_connecting)),
-            if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0
-        )
+        // Web mode keeps an APRS-IS connection for messages ("remoteMessaging"); T-Echo mode keeps
+        // the Bluetooth link ("connectedDevice"). Android 14+ wants the type that is in use.
+        val type = when {
+            Build.VERSION.SDK_INT >= 34 && techo.isWeb -> ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING
+            Build.VERSION.SDK_INT >= 29 && !techo.isWeb -> ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+            else -> 0
+        }
+        ServiceCompat.startForeground(this, NOTIF_ID, build(L.s(R.string.svc_connecting)), type)
         watch?.cancel()
-        watch = techo.scope.launch {
+        watch = if (techo.isWeb) techo.scope.launch {
+            techo.aprsIs.state.collect { st ->
+                getSystemService(android.app.NotificationManager::class.java).notify(NOTIF_ID, build(webStateText(st)))
+            }
+        } else techo.scope.launch {
             techo.link.state.collect { st ->
                 val text = when (st) {
                     is LinkState.Ready -> L.s(R.string.svc_connected, st.name)
@@ -58,6 +67,15 @@ class LinkService : Service() {
         .build()
 
     companion object {
+        /** One line about the APRS-IS connection, for the notification and the settings. */
+        fun webStateText(st: IsState): String = when (st) {
+            is IsState.Connected -> if (st.verified) L.s(R.string.web_state_on, st.server)
+                else L.s(R.string.web_state_unverified, st.server)
+            is IsState.Connecting -> L.s(R.string.web_state_connecting, st.server)
+            is IsState.Failed -> L.s(R.string.web_state_failed, st.reason)
+            IsState.Off -> L.s(R.string.web_state_off)
+        }
+
         private const val NOTIF_ID = 1
 
         fun start(ctx: Context) {

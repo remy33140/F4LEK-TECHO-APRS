@@ -82,7 +82,8 @@ fun ConversationsScreen(onOpen: (String) -> Unit) {
             Column(Modifier.align(Alignment.Center).padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(L.s(R.string.msg_none), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    L.s(R.string.msg_none_hint, techo.myCall),
+                    if (techo.isWeb && !fr.f4lek.techoaprs.net.AprsIsLink.validCall(techo.webCall)) L.s(R.string.web_need_call)
+                    else L.s(R.string.msg_none_hint, techo.myCall),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -133,8 +134,12 @@ fun ConversationsScreen(onOpen: (String) -> Unit) {
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
                     )
-                    Spacer(Modifier.padding(4.dp))
-                    TextButton(onClick = { call = Aprs.SOTA_GATEWAY }) { Text(L.s(R.string.msg_gateway)) }
+                    // The APRS2SOTA shortcut only makes sense with a T-Echo: spotting from the Web
+                    // mode (APRS-IS) is pointless, nobody activates from home.
+                    if (!techo.isWeb) {
+                        Spacer(Modifier.padding(4.dp))
+                        TextButton(onClick = { call = Aprs.SOTA_GATEWAY }) { Text(L.s(R.string.msg_gateway)) }
+                    }
                 }
             },
             confirmButton = {

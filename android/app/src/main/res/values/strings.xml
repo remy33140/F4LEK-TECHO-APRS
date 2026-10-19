@@ -303,4 +303,27 @@
     <string name="h_bleEnabled">Turning it off cuts the link with this app</string>
     <string name="f_blePin">Pairing PIN (6 digits)</string>
     <string name="h_blePin">Applied at the next reboot; the phone will have to pair again</string>
+
+    <!-- Source: T-Echo or Web (APRS-IS) -->
+    <string name="src_label">Source</string>
+    <string name="src_techo">T-Echo (Bluetooth)</string>
+    <string name="src_web">Web (APRS-IS, messages only)</string>
+    <string name="web_mode_note">Web mode: the app only sends and receives APRS messages over the Internet. The SOTA spot and the T-Echo functions are off.</string>
+    <string name="web_section">Web identity (APRS-IS)</string>
+    <string name="web_call">Callsign-SSID</string>
+    <string name="web_call_hint">Used on APRS-IS, e.g. F4LEK-6. N0CALL does not connect.</string>
+    <string name="web_bad_call">Invalid callsign (letters and digits, -SSID from 0 to 15)</string>
+    <string name="web_pass">Passcode</string>
+    <string name="web_pass_hint">Leave empty: computed from the callsign (%1$s)</string>
+    <string name="web_server">Server</string>
+    <string name="web_apply">Save and connect</string>
+    <string name="web_saved">Saved</string>
+    <string name="web_state_off">Not connected</string>
+    <string name="web_state_connecting">Connecting to %1$s…</string>
+    <string name="web_state_on">Connected to %1$s</string>
+    <string name="web_state_unverified">Connected to %1$s, but the passcode is refused: sending is not possible</string>
+    <string name="web_state_failed">No connection (%1$s), retrying…</string>
+    <string name="web_need_call">Set your callsign in Settings to connect</string>
+    <string name="web_note">A message reaches the T-Echo only if an iGate near it transmits it over the radio. Without ✓✓, there is no proof it arrived.</string>
+    <string name="err_web_not_connected">Not connected to APRS-IS</string>
 </resources>

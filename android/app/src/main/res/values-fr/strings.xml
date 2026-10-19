@@ -301,4 +301,27 @@
     <string name="h_bleEnabled">L\'éteindre coupe la connexion avec cette application</string>
     <string name="f_blePin">PIN d\'appairage (6 chiffres)</string>
     <string name="h_blePin">Pris en compte au prochain redémarrage ; il faudra ré-appairer le téléphone</string>
+
+    <!-- Source : T-Echo ou Web (APRS-IS) -->
+    <string name="src_label">Source</string>
+    <string name="src_techo">T-Echo (Bluetooth)</string>
+    <string name="src_web">Web (APRS-IS, messages seulement)</string>
+    <string name="web_mode_note">Mode Web : l\'application envoie et reçoit seulement des messages APRS par Internet. Le spot SOTA et les fonctions du T-Echo sont désactivés.</string>
+    <string name="web_section">Identité Web (APRS-IS)</string>
+    <string name="web_call">Indicatif-SSID</string>
+    <string name="web_call_hint">Utilisé sur APRS-IS, ex. F4LEK-6. N0CALL ne se connecte pas.</string>
+    <string name="web_bad_call">Indicatif invalide (lettres et chiffres, -SSID de 0 à 15)</string>
+    <string name="web_pass">Passcode</string>
+    <string name="web_pass_hint">Laisser vide : calculé à partir de l\'indicatif (%1$s)</string>
+    <string name="web_server">Serveur</string>
+    <string name="web_apply">Enregistrer et connecter</string>
+    <string name="web_saved">Enregistré</string>
+    <string name="web_state_off">Non connecté</string>
+    <string name="web_state_connecting">Connexion à %1$s…</string>
+    <string name="web_state_on">Connecté à %1$s</string>
+    <string name="web_state_unverified">Connecté à %1$s, mais le passcode est refusé : impossible d\'envoyer</string>
+    <string name="web_state_failed">Pas de connexion (%1$s), nouvel essai…</string>
+    <string name="web_need_call">Indiquez votre indicatif dans Réglages pour vous connecter</string>
+    <string name="web_note">Un message n\'arrive sur le T-Echo que si un iGate proche de lui le réémet en radio. Sans ✓✓, rien ne prouve qu\'il est arrivé.</string>
+    <string name="err_web_not_connected">Non connecté à APRS-IS</string>
 </resources>

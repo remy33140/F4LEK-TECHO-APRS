@@ -99,4 +99,33 @@ class ProtoTest {
             assertEquals(expected, Aprs.parseMessage(frame))
         }
     }
+
+    @Test
+    fun aprsIsPasscode() {
+        assertEquals(13023, fr.f4lek.techoaprs.net.AprsIsLink.passcode("N0CALL"))
+        // The SSID does not change the passcode; case does not matter.
+        assertEquals(
+            fr.f4lek.techoaprs.net.AprsIsLink.passcode("F4LEK"),
+            fr.f4lek.techoaprs.net.AprsIsLink.passcode("f4lek-6")
+        )
+    }
+
+    @Test
+    fun aprsIsCallAndServer() {
+        val l = fr.f4lek.techoaprs.net.AprsIsLink
+        assertTrue(l.validCall("F4LEK-6") && l.validCall("F4LEK") && l.validCall("EA2ABC-15"))
+        assertTrue(!l.validCall("N0CALL-2") && !l.validCall("F4LEK-16") && !l.validCall("F4LEK/P") && !l.validCall(""))
+        assertEquals("rotate.aprs2.net" to 14580, l.splitServer("rotate.aprs2.net"))
+        assertEquals("10.0.2.2" to 14581, l.splitServer("10.0.2.2:14581"))
+    }
+
+    @Test
+    fun aprsIsLinesParse() {
+        // A message gated from RF, as APRS-IS delivers it (q-construct in the path).
+        val f = TextFrame.parse("F4LEK-7>APL2OY,WIDE1-1,qAR,F5XYZ-10::F4LEK-6  :Bien arrive au sommet{021")!!
+        assertEquals(AprsMessage.Text("F4LEK-7", "F4LEK-6", "Bien arrive au sommet", "021"), Aprs.parseMessage(f))
+        // What the app sends back: an ack in TNC2 form.
+        val ack = TextFrame("F4LEK-6", fr.f4lek.techoaprs.net.AprsIsLink.TOCALL, listOf("TCPIP*"), ":%-9s:ack%s".format("F4LEK-7", "021"))
+        assertEquals("F4LEK-6>APZLEK,TCPIP*::F4LEK-7  :ack021", ack.toString())
+    }
 }

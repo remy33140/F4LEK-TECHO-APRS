@@ -1,5 +1,9 @@
 package fr.f4lek.techoaprs.ui
 
+import fr.f4lek.techoaprs.net.IsState
+import fr.f4lek.techoaprs.net.AprsIsLink
+import fr.f4lek.techoaprs.Source
+import fr.f4lek.techoaprs.LinkService
 import androidx.compose.material3.ProvideTextStyle
 import fr.f4lek.techoaprs.TechoApp
 import androidx.compose.ui.platform.LocalContext
@@ -175,6 +179,11 @@ fun ConfigScreen(onConnect: () -> Unit) {
     var confirm by remember { mutableStateOf<String?>(null) }
     var console by rememberSaveable { mutableStateOf(false) }
 
+    // Web mode: no T-Echo, only the app settings and the APRS-IS identity.
+    if (techo.isWeb) {
+        WebSettings(say)
+        return
+    }
     if (link !is LinkState.Ready) {
         Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(L.s(R.string.cfg_connect_prompt), style = MaterialTheme.typography.bodyLarge)
@@ -260,6 +269,7 @@ fun ConfigScreen(onConnect: () -> Unit) {
 /** App language: English, French or the phone's. Applied at once (the activity is recreated). */
 @Composable
 private fun LanguageCard() {
+    val techo = LocalTecho.current
     val ctx = LocalContext.current
     val name = { l: String ->
         when (l) {
@@ -282,6 +292,88 @@ private fun LanguageCard() {
             },
             modifier = Modifier.fillMaxWidth(),
         )
+        Spacer(Modifier.height(8.dp))
+        val source by techo.source.collectAsState()
+        val srcName = { s: Source -> L.s(if (s == Source.WEB) R.string.src_web else R.string.src_techo) }
+        Picker(
+            label = L.s(R.string.src_label),
+            value = srcName(source),
+            options = Source.entries.toList(),
+            text = srcName,
+            onPick = { s ->
+                if (s != source) {
+                    techo.setSource(s)
+                    (ctx as? Activity)?.recreate() // tabs, start screen and permissions follow the source
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+/** Web mode settings: app card, what the mode does, and the APRS-IS identity. */
+@Composable
+private fun WebSettings(say: (String) -> Unit) {
+    val techo = LocalTecho.current
+    val state by techo.aprsIs.state.collectAsState()
+    var call by rememberSaveable { mutableStateOf(techo.webCall) }
+    var pass by rememberSaveable { mutableStateOf(techo.prefs.getString("web.pass", "") ?: "") }
+    var server by rememberSaveable { mutableStateOf(techo.webServer) }
+    val callOk = AprsIsLink.validCall(call)
+    LazyColumn(
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item { LanguageCard() }
+        item {
+            Text(L.s(R.string.web_mode_note), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(horizontal = 4.dp))
+        }
+        item {
+            Section(L.s(R.string.web_section)) {
+                OutlinedTextField(
+                    value = call,
+                    onValueChange = { call = it.uppercase().filter { c -> c.isLetterOrDigit() || c == '-' }.take(9) },
+                    label = { Text(L.s(R.string.web_call)) },
+                    singleLine = true,
+                    isError = !callOk,
+                    supportingText = { Text(L.s(if (callOk || call.isBlank()) R.string.web_call_hint else R.string.web_bad_call)) },
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = pass,
+                    onValueChange = { pass = it.filter { c -> c.isDigit() }.take(5) },
+                    label = { Text(L.s(R.string.web_pass)) },
+                    singleLine = true,
+                    supportingText = { Text(L.s(R.string.web_pass_hint, AprsIsLink.passcode(call).toString())) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                OutlinedTextField(
+                    value = server,
+                    onValueChange = { server = it.trim() },
+                    label = { Text(L.s(R.string.web_server)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Button(
+                    onClick = { techo.setWebIdentity(call, pass, server); say(L.s(R.string.web_saved)) },
+                    enabled = callOk,
+                ) { Text(L.s(R.string.web_apply)) }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    if (!AprsIsLink.validCall(techo.webCall)) L.s(R.string.web_need_call) else LinkService.webStateText(state),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = when {
+                        state is IsState.Connected && (state as IsState.Connected).verified -> MaterialTheme.colorScheme.primary
+                        state is IsState.Failed || state is IsState.Connected -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+                Text(L.s(R.string.web_note), style = MaterialTheme.typography.bodySmall)
+            }
+        }
     }
 }
 

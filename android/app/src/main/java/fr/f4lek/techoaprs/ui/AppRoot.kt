@@ -1,5 +1,10 @@
 package fr.f4lek.techoaprs.ui
 
+import fr.f4lek.techoaprs.net.IsState
+import fr.f4lek.techoaprs.LinkService
+import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.colorResource
@@ -88,10 +93,14 @@ fun AppRoot(techo: Techo, openPeer: MutableStateFlow<String?>) {
     val snack = remember { SnackbarHostState() }
     var showConnect by rememberSaveable { mutableStateOf(false) }
     val linkState by techo.link.state.collectAsState()
+    val webState by techo.aprsIs.state.collectAsState()
+    // The source is fixed for the life of the activity: switching it recreates the activity.
+    val web = remember { techo.isWeb }
+    val start = if (web) "convs" else "sota"   // Web mode: no SOTA, the app opens on Messages
     val msgVersion by techo.messages.version.collectAsState()
     val unread = remember(msgVersion) { techo.messages.conversations().sumOf { it.unread } }
     val backStack by nav.currentBackStackEntryAsState()
-    val route = backStack?.destination?.route ?: "sota"
+    val route = backStack?.destination?.route ?: start
     val peer by openPeer.collectAsState()
 
     LaunchedEffect(peer) {
@@ -122,13 +131,17 @@ fun AppRoot(techo: Techo, openPeer: MutableStateFlow<String?>) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, L.s(R.string.back))
                         }
                     },
-                    actions = { LinkButton(linkState) { showConnect = true } },
+                    actions = {
+                        if (web) WebButton(webState) { nav.navigate("config") { launchSingleTop = true } }
+                        else LinkButton(linkState) { showConnect = true }
+                    },
                 )
             },
             bottomBar = {
                 if (!route.startsWith("chat/")) NavigationBar {
                     for (t in tabs) NavigationBarItem(
                         selected = route == t.route,
+                        enabled = !(web && t.route == "sota"),
                         onClick = {
                             nav.navigate(t.route) {
                                 popUpTo(nav.graph.findStartDestination().id) { saveState = true }
@@ -147,7 +160,7 @@ fun AppRoot(techo: Techo, openPeer: MutableStateFlow<String?>) {
             },
             snackbarHost = { SnackbarHost(snack) },
         ) { pad ->
-            NavHost(nav, startDestination = "sota", modifier = Modifier.padding(pad)) {
+            NavHost(nav, startDestination = start, modifier = Modifier.padding(pad)) {
                 composable("sota") { SotaScreen { showConnect = true } }
                 composable("convs") { ConversationsScreen(onOpen = { nav.navigate("chat/$it") }) }
                 composable("chat/{peer}", arguments = listOf(navArgument("peer") { type = NavType.StringType })) {
@@ -181,6 +194,29 @@ private fun BrandTitle(title: String) {
             )
         }
     }
+}
+
+/** Web mode: the APRS-IS connection as a cloud icon; tap to open the settings. */
+@Composable
+private fun WebButton(state: IsState, onClick: () -> Unit) {
+    val icon = when (state) {
+        is IsState.Connected -> if (state.verified) Icons.Filled.CloudDone else Icons.Filled.CloudOff
+        is IsState.Connecting -> Icons.Filled.CloudSync
+        else -> Icons.Filled.CloudOff
+    }
+    val ok = state is IsState.Connected && state.verified
+    val bad = state is IsState.Failed || (state is IsState.Connected && !state.verified)
+    FilledTonalIconButton(
+        onClick = onClick,
+        colors = if (ok) IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.primary,
+        ) else IconButtonDefaults.filledTonalIconButtonColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = if (bad) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+        modifier = Modifier.padding(end = 8.dp),
+    ) { Icon(icon, LinkService.webStateText(state)) }
 }
 
 /** Bluetooth state as a bare icon; tap to connect or see the link. */

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 108 108">
+  <!-- T-Echo APRS by F4LEK: same drawing as the app icon (android/app/src/main/res/drawable/ic_launcher_fg.xml),
+       scaled up so the summit fills the disc like the round app icon does. -->
+  <circle cx="54" cy="54" r="54" fill="#1B5E20"/>
+  <g transform="translate(54 54) scale(1.3) translate(-54 -54)">
+    <path fill="#FFFFFF" d="M26,76 L46,44 L54,56 L62,46 L82,76 Z"/>
+    <path fill="#C8E6C9" d="M46,44 L51,52 L48,50 L44,54 L41,52 Z"/>
+    <path fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" d="M56,34 A8,8 0 0 1 68,34 M52,29 A14,14 0 0 1 72,29"/>
+  </g>
+</svg>

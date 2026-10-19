@@ -201,6 +201,34 @@ Values are checked against the firmware's limits before saving; only what change
 </tr>
 </table>
 
+### 2.4 Web mode: messages without a T-Echo
+
+For someone at home without a T-Echo (family, a friend) who wants to write to you on yours.
+In **Settings → App → Source**, choose **Web (APRS-IS, messages only)**: the app then connects to
+the APRS Internet network (APRS-IS) instead of the T-Echo.
+
+<table>
+<tr>
+<td width="33%"><img src="assets/screenshots/web_settings.png" alt="Web identity"></td>
+<td width="33%"><img src="assets/screenshots/web_chat.png" alt="Conversation over the Internet"></td>
+<td width="33%" valign="top">
+<b>Set it up once</b>: a callsign-SSID (e.g. <code>F4LEK-6</code>; the default <code>N0CALL-2</code> does
+not connect), the passcode is computed from it, the server is <code>rotate.aprs2.net</code>.<br><br>
+<b>Messages only</b>: the app opens on Messages, the SOTA tab and the T-Echo settings are greyed
+out. The cloud icon at the top right shows the connection.<br><br>
+The app is then a station of its own: it numbers its messages, repeats them (60 s, then every
+120 s) until they are acknowledged, and acknowledges the messages it receives.
+</td>
+</tr>
+</table>
+
+> [!NOTE]
+> A message sent from the Internet reaches the T-Echo only if an iGate that hears the T-Echo
+> transmits it back over the radio. Many LoRa iGates only receive: without ✓✓, there is no proof
+> the message arrived.
+
+The app identifies itself on APRS-IS as `APZLEK` (an experimental software identifier).
+
 ---
 
 ## 🗻 3. On the T-Echo, without a phone

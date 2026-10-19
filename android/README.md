@@ -11,6 +11,11 @@ Application Android 8 à 15 (minSdk 26, targetSdk 35) qui pilote le T-Echo par B
   notifications, lien de service qui garde la connexion en arrière-plan.
 - **Réglages** : toute la configuration du nœud (mêmes clés et bornes que le configurateur web),
   état (batterie, GPS, radio), balise immédiate, redémarrage, réglages d'usine, console.
+- **Mode Web** (Réglages → Application → Source) : sans T-Echo, l'app se connecte au réseau APRS
+  Internet (APRS-IS) avec un indicatif-SSID et devient une station à part entière (numérotation,
+  répétitions, accusés). Messages seulement : l'onglet SOTA et les réglages du T-Echo sont grisés,
+  l'app s'ouvre sur Messages. Code : `net/AprsIsLink.kt` ; test sans toucher au vrai réseau avec
+  `tools/fake_aprsis.py` (serveur `10.0.2.2:14581` depuis l'émulateur).
 - **Langue** : anglais par défaut, français, ou langue du téléphone (Réglages → Application).
   Les textes sont dans `res/values/strings.xml` (anglais) et `res/values-fr/strings.xml` ;
   pour une nouvelle langue, ajouter un `values-xx/strings.xml` et son code dans `L.LANGS`.
@@ -40,7 +45,7 @@ Il faut un JDK 17 et le SDK Android (plateforme 35), indiqué par `sdk.dir` dans
 
 `app/src/main/assets/summits.sota` est la liste officielle SOTA, réduite aux sommets valides.
 L'app l'importe dans SQLite au premier lancement, et le bouton « Mettre à jour la liste » la
-télécharge à nouveau depuis sota.org.uk (c'est le seul usage d'Internet). Pour régénérer l'asset :
+télécharge à nouveau depuis sota.org.uk (seul usage d'Internet hors du mode Web). Pour régénérer l'asset :
 
 ```sh
 curl -O https://storage.sota.org.uk/summitslist.csv
