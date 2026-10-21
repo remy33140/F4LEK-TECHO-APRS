@@ -143,6 +143,11 @@ class Techo(val ctx: Context) {
         LinkService.start(ctx)
     }
 
+    /** Notification "Stop": no more link (nor reconnection attempts) until the app is reopened. */
+    fun stopLinks() {
+        if (isWeb) aprsIs.stop() else link.disconnect()
+    }
+
     fun connect(address: String) {
         prefs.edit().putString("connecting", address).apply()
         LinkService.start(ctx)
@@ -282,6 +287,7 @@ class Techo(val ctx: Context) {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(open)
             .setAutoCancel(true)
+            .setGroup("fr.f4lek.techoaprs.messages")
             .build()
         runCatching { NotificationManagerCompat.from(ctx).notify(from.hashCode(), n) }
     }

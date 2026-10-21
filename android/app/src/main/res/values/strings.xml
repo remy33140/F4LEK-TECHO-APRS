@@ -330,4 +330,5 @@
     <string name="h_batteryCal">Voltage measured with a multimeter ÷ voltage shown by the T-Echo (1.00 = none)</string>
     <string name="cfg_battery_pct">Battery: %1$.2f V · %2$d %%</string>
     <string name="cfg_battery_usb">Battery: %1$.2f V · on USB</string>
+    <string name="notif_stop">Stop</string>
 </resources>

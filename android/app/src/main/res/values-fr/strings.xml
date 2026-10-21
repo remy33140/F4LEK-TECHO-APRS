@@ -328,4 +328,5 @@
     <string name="h_batteryCal">Tension mesurée au multimètre ÷ tension affichée par le T-Echo (1,00 = aucune)</string>
     <string name="cfg_battery_pct">Batterie : %1$.2f V · %2$d %%</string>
     <string name="cfg_battery_usb">Batterie : %1$.2f V · sur USB</string>
+    <string name="notif_stop">Arrêter</string>
 </resources>

@@ -22,6 +22,15 @@ class LinkService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val techo = (application as TechoApp).techo
+        // "Stop" button of the notification: drop the link (Bluetooth or APRS-IS) and the
+        // service, until the app is opened again.
+        if (intent?.action == ACTION_STOP) {
+            watch?.cancel()
+            techo.stopLinks()
+            ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         // Web mode keeps an APRS-IS connection for messages ("remoteMessaging"); T-Echo mode keeps
         // the Bluetooth link ("connectedDevice"). Android 14+ wants the type that is in use.
         val type = when {
@@ -59,14 +68,25 @@ class LinkService : Service() {
         .setContentTitle("T-Echo APRS")
         .setContentText(text)
         .setOngoing(true)
+        // Its own group: otherwise Android folds it in with the message notifications and its
+        // "Stop" button is two taps away.
+        .setGroup("fr.f4lek.techoaprs.link")
         .setContentIntent(
             PendingIntent.getActivity(
                 this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
             )
         )
+        .addAction(
+            0, L.s(R.string.notif_stop),
+            PendingIntent.getService(
+                this, 1, Intent(this, LinkService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE
+            )
+        )
         .build()
 
     companion object {
+        private const val ACTION_STOP = "fr.f4lek.techoaprs.STOP"
+
         /** One line about the APRS-IS connection, for the notification and the settings. */
         fun webStateText(st: IsState): String = when (st) {
             is IsState.Connected -> if (st.verified) L.s(R.string.web_state_on, st.server)
